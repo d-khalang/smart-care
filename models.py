@@ -5,7 +5,7 @@ from pymongo.errors import PyMongoError
 from datetime import datetime
 from typing import List, Optional, Dict, Literal
 from dotenv import load_dotenv
-from registry import logger, to_camel_case, to_lower_camel_case, camel_to_snake
+from registry import logger, to_camel_case, to_lower_camel_case, camel_to_snake, camel_snake_handler_for_dict
 
 # Import environmental variables
 load_dotenv()
@@ -24,9 +24,16 @@ plants_collection = db[PLANTS_COLLECTION]
 rooms_collection = db[ROOMS_COLLECTION]
 
 
+class BaseModelWithTimestamp(BaseModel):
+    last_updated: Optional[str] = None
+
+    def model_dump_with_time(self) -> dict:
+        """Adds a timestamp to the model before dumping"""
+        self.last_updated = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        return self.model_dump()
 
 
-class Plant(BaseModel):
+class Plant(BaseModelWithTimestamp):
     plant_id: int
     room_id: int
     plant_kind: str
@@ -37,10 +44,6 @@ class Plant(BaseModel):
     def __init__(self, **data):
         super().__init__(**data)
         self.device_inventory = []
-
-    def model_dump_with_time(self) -> dict:
-        self.last_updated = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        return self.model_dump()
 
 
 
@@ -64,7 +67,7 @@ class Plant(BaseModel):
             # Perform the update or insert (upsert) for the plant in the transaction
             plant_update_result = plants_collection.update_one(
                 {"plantId": self.plant_id},
-                {"$set": updated_data},
+                {"$set": camel_snake_handler_for_dict(updated_data, from_type="snake")},
                 upsert=True,
             )
             if plant_update_result.upserted_id:
@@ -153,18 +156,19 @@ class Plant(BaseModel):
 
 if __name__ == "__main__":
     plant_dict = {
-    "plantId": 201,
+    "plantId": 202,
     "roomId": 2,
     "plantKind": "Lettuce",
     "plantDate": "2024-07-28",
-    "deviceInventory": [10102, 10101, {}]
+    "deviceInventory": [10102, 10101, {}],
+
 }
-    # camel_case_data = {camel_to_snake(key):value for key, value in plant_dict.items()}
+
     
-    plant1 = Plant(**{camel_to_snake(key):value for key, value in plant_dict.items()})
-    # plant_dict =plant1.model_dump()
-    # plant_dict_updated = plant1.model_dump_with_time()
-    # child_logger.info(plant_dict)
-    # child_logger.info(plant_dict_updated)
+    plant1 = Plant(**camel_snake_handler_for_dict(plant_dict, from_type="camel"))
+    plant_dict =plant1.model_dump()
+    plant_dict_updated = plant1.model_dump_with_time()
+    child_logger.info(plant_dict)
+    child_logger.info(plant_dict_updated)
     plant1.save_to_db()
     # plant1.remove_from_db()
