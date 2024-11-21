@@ -1,9 +1,10 @@
 import os
-from pydantic import BaseModel
+from typing_extensions import Literal
+from pydantic import BaseModel, ValidationError, ConfigDict, model_validator
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 from datetime import datetime
-from typing import List, Optional, Dict, Literal
+from typing import List, Optional, Dict, Literal, Union, Any
 from dotenv import load_dotenv
 from registry import logger, to_camel_case, to_lower_camel_case, camel_to_snake, camel_snake_handler_for_dict
 
@@ -13,8 +14,10 @@ MONGO_URL = os.getenv("MONGO_URL")
 DB = os.getenv("DB")
 PLANTS_COLLECTION = os.getenv("PLANTS_COLLECTION")
 ROOMS_COLLECTION =  os.getenv("ROOMS_COLLECTION")
+DEVICES_COLLECTION = os.getenv("DEVICES_COLLECTION")
 LOGGER_NAME = os.getenv("MODEL_LOGGER")
 
+# Logger configuartion (child from the main logger)
 child_logger = logger.getChild(LOGGER_NAME)
 
 # MongoDB client and collections
@@ -22,15 +25,120 @@ mongo_client = MongoClient(MONGO_URL)
 db = mongo_client[DB]
 plants_collection = db[PLANTS_COLLECTION]
 rooms_collection = db[ROOMS_COLLECTION]
+devices_collection = db[DEVICES_COLLECTION]
+
 
 
 class BaseModelWithTimestamp(BaseModel):
     last_updated: Optional[str] = None
-
-    def model_dump_with_time(self) -> dict:
+    
+    # Lets the model to accept both camel and snake case. 
+    # Plus, providing option to dump in both ways
+    model_config = ConfigDict(
+        alias_generator=to_lower_camel_case, populate_by_name=True
+    )
+    def model_dump_with_time(self, by_alias: bool = True, exclude_unset: bool = True) -> dict:
         """Adds a timestamp to the model before dumping"""
         self.last_updated = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        return self.model_dump()
+        # Change the difult dump to be camelCase
+        return self.model_dump(by_alias=by_alias, exclude_unset=exclude_unset)
+
+
+class BaseModelAlias(BaseModel):
+    # Lets the model to accept both camel and snake case. 
+    # Plus, providing option to dump in both ways
+    model_config = ConfigDict(
+        alias_generator=to_lower_camel_case, populate_by_name=True
+    )
+    def model_dump(self, by_alias: bool = True, exclude_unset: bool = True) -> Dict[str, Any]:
+        return super().model_dump(by_alias=by_alias, exclude_unset=exclude_unset)
+
+
+
+
+class DeviceLocation(BaseModelAlias):
+    plant_id: Optional[int] = None
+    room_id: int
+
+class ServicesDetail(BaseModelAlias):
+    service_type: Literal["MQTT", "REST"]
+    topic: Optional[List[str]] = None
+    service_ip: Optional[str] = None
+
+class Device(BaseModelWithTimestamp):
+    device_id: int
+    device_type: Literal["sensor", "actuator"]
+    device_name: str
+    device_location: DeviceLocation
+    device_status: str
+    status_options: List[str]
+    measure_types: List[str]
+    available_services: List[Literal["MQTT", "REST"]]
+    services_details: List[ServicesDetail]
+
+    def save_to_db(self):
+        child_logger.debug(f"Entering save_to_db method for device_id: {self.device_id}")
+
+        try:
+            child_logger.info(f"""Starting update/insert for device {self.device_id} in room {self.device_location.room_id} for plant {self.device_location.plant_id}...""")
+            plant_id = self.device_location.plant_id
+            room_id = self.device_location.room_id
+
+            # Check if the device's plant exists in the database
+            if plant_id:
+                self._check_plant_exists(plant_id)
+                
+            # Check if the device's room exist in the database
+            self._check_room_exists(room_id)
+            self._upsert_device()
+
+            if plant_id:
+                self._update_plant_device_inventory(plant_id)
+            self._update_room_device_inventory(room_id)
+
+        except Exception as e:
+            child_logger.error(f"Error saving device {self.device_id} to database: {str(e)}")
+            raise
+
+    ### Helper functions
+    def _check_plant_exists(self, plant_id: int):
+        plant = plants_collection.find_one({"plantId": plant_id})
+        if not plant:
+            child_logger.error(f"Plant with id {plant_id} does not exist.")
+            raise ValueError(f"Plant with id {plant_id} does not exist.")
+    
+    def _check_room_exists(self, room_id: int):
+        room = rooms_collection.find_one({'roomId': room_id})
+        if not room:
+            child_logger.error(f"Room with id {room_id} does not exist.")
+            raise ValueError(f"Room with id {room_id} does not exist.")
+        
+    def _upsert_device(self):
+        device_data = self.model_dump_with_time()
+        device_update_result = devices_collection.update_one(
+            {'deviceId': self.device_id},
+            {'$set': device_data},
+            upsert=True
+        )
+        if device_update_result.upserted_id:
+            child_logger.info(f"Inserted new device with ID {self.device_id}.")
+        else:
+            child_logger.info(f"Updated existing device with ID {self.device_id}.")
+
+    def _update_plant_device_inventory(self, plant_id: int):
+        plants_collection.update_one(
+            {'plantId': plant_id},
+            {'$addToSet': {'device_inventory': self.device_id}}
+        )
+        child_logger.info(f"Device id {self.device_id} upserted to plant {plant_id} device_inventory.")
+
+    def _update_room_device_inventory(self, room_id: int):
+        rooms_collection.update_one(
+            {'roomId': room_id},
+            {'$addToSet': {'device_inventory': self.device_id}}
+        )
+        child_logger.info(f"Device id {self.device_id} upserted to room {room_id} device_inventory.\n")
+
 
 
 class Plant(BaseModelWithTimestamp):
@@ -39,12 +147,11 @@ class Plant(BaseModelWithTimestamp):
     plant_kind: str
     plant_date: str
     device_inventory: list 
-    last_updated: Optional[str] = None
 
     def __init__(self, **data):
         super().__init__(**data)
+        # Ensures device inventory remains empty as a plant is supposed to be presented solely
         self.device_inventory = []
-
 
 
     def save_to_db(self) -> None:
@@ -54,7 +161,6 @@ class Plant(BaseModelWithTimestamp):
 
             # Check if the plant already exists in the database
             existing_plant = plants_collection.find_one({"plantId": self.plant_id})
-            
     
             # Prepare the data to update, excluding device_inventory if the plant already exists
             updated_data = self.model_dump_with_time()
@@ -62,21 +168,13 @@ class Plant(BaseModelWithTimestamp):
             if existing_plant:
                 child_logger.info(f"Plant {self.plant_id} already exists in the database. Preparing to update.")
                 # If the plant exists, we want to update only specific fields excluding device_inventory
-                updated_data.pop("device_inventory", None)
+                updated_data.pop("deviceInventory", None)
             
             # Perform the update or insert (upsert) for the plant in the transaction
-            plant_update_result = plants_collection.update_one(
-                {"plantId": self.plant_id},
-                {"$set": camel_snake_handler_for_dict(updated_data, from_type="snake")},
-                upsert=True,
-            )
-            if plant_update_result.upserted_id:
-                child_logger.info(f"Inserted new plant with ID {self.plant_id}.")
-            else:
-                child_logger.info(f"Updated existing plant with ID {self.plant_id}.")
+            self._upsert_plant(updated_data)
 
             # Perform the upsert for the room (adding plant_id to plant_inventory)
-            self.upsert_room()
+            self._upsert_room()
 
         except PyMongoError as e:
             child_logger.error(f"Error occurred durring update/insert: {e}.")
@@ -85,8 +183,18 @@ class Plant(BaseModelWithTimestamp):
         child_logger.debug(f"Exiting save_to_db method for plant_id: {self.plant_id}\n")
 
 
+    def _upsert_plant(self, updated_data: dict) -> None:
+        plant_update_result = plants_collection.update_one(
+            {"plantId": self.plant_id},
+            {"$set": updated_data},
+            upsert=True,
+        )
+        if plant_update_result.upserted_id:
+            child_logger.info(f"Inserted new plant with ID {self.plant_id}.")
+        else:
+            child_logger.info(f"Updated existing plant with ID {self.plant_id}.")
 
-    def upsert_room(self) -> None:
+    def _upsert_room(self) -> None:
         # Update the room by adding the plant_id to plantInventory if it doesn't exist yet
         room_update_result = rooms_collection.update_one(
             {"roomId": self.room_id},
@@ -139,22 +247,10 @@ class Plant(BaseModelWithTimestamp):
             child_logger.warning(f"Plant {self.plant_id} was not found in room {self.room_id}'s inventory.")
     
     
-# class Device:
-#     def __init__(self, device_id: int, device_type: Literal["sensor", "actuator"], 
-#                  device_name: str, device_status: str, status_options: List[str],
-#                  measure_types: List[str], available_services: List[Literal["MQTT", "REST"]],
-#                  device_location: Dict["room_id", Optional["plant_Id"]], services_details: List[dict]):
-        
-#         self.device_id = f"{device_location['plantId']}_{device_id}"  # plantId + deviceId as unique ID
-#         self.device_name = device_name
-#         self.device_status = device_status
-#         self.status_options = status_options
-#         self.measure_types = measure_types
-#         self.communication_methods = available_services
-#         self.device_location = device_location
-#         self.communication_details = services_details
+
 
 if __name__ == "__main__":
+    ## test plant
     plant_dict = {
     "plantId": 202,
     "roomId": 2,
@@ -163,12 +259,51 @@ if __name__ == "__main__":
     "deviceInventory": [10102, 10101, {}],
 
 }
+    try:
+        plant1 = Plant(**plant_dict)
+        print(plant1.model_dump(by_alias=False))
+        plant1.save_to_db()
+    except ValidationError as e:
+        print(e.json())
 
+    ### test device
+    # device_dict = {
+    #     "deviceId": 20109,
+    #     "deviceType": "sensor", 
+    #     "deviceName": "tempsen",
+    #     "deviceStatus": "ON",
+    #     "statusOptions": [
+    #         "DISABLE",
+    #         "ON"
+    #     ],
+    #     "deviceLocation": {
+
+    #         "roomId": 2
+    #     },
+    #     "measureTypes": [
+    #         "temperature"
+    #     ],
+    #     "availableServices": [
+    #         "MQTT"
+    #     ],
+    #     "servicesDetails": [
+    #         {
+    #             "serviceType": "MQTT",
+    #             "topic": [
+    #                 "SC4SS/sensor/1/000/temperature"
+    #             ]
+    #         }
+    #     ],
+    #     "lastUpdate": "2024-03-14 12:41:45"
+    # }
+    # device1 = Device(**device_dict)
+    # child_logger.info(device1.model_dump_with_time())
+    # device1.save_to_db()
     
-    plant1 = Plant(**camel_snake_handler_for_dict(plant_dict, from_type="camel"))
-    plant_dict =plant1.model_dump()
-    plant_dict_updated = plant1.model_dump_with_time()
-    child_logger.info(plant_dict)
-    child_logger.info(plant_dict_updated)
-    plant1.save_to_db()
+    # plant1 = Plant(**camel_snake_handler_for_dict(plant_dict, from_type="camel"))
+    # plant_dict =plant1.model_dump()
+    # plant_dict_updated = plant1.model_dump_with_time()
+    # child_logger.info(plant_dict)
+    # child_logger.info(plant_dict_updated)
+    
     # plant1.remove_from_db()
