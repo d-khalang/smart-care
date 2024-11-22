@@ -78,7 +78,7 @@ class Device(BaseModelWithTimestamp):
 
     def save_to_db(self):
         child_logger.debug(f"Entering save_to_db method for device_id: {self.device_id}")
-
+        print()
         try:
             child_logger.info(f"""Starting update/insert for device {self.device_id} in room {self.device_location.room_id} for plant {self.device_location.plant_id}...""")
             plant_id = self.device_location.plant_id
@@ -125,17 +125,21 @@ class Device(BaseModelWithTimestamp):
         else:
             child_logger.info(f"Updated existing device with ID {self.device_id}.")
 
+    # Plus, updates plant's last update too
     def _update_plant_device_inventory(self, plant_id: int):
         plants_collection.update_one(
             {'plantId': plant_id},
-            {'$addToSet': {'device_inventory': self.device_id}}
+            {
+                '$addToSet': {'deviceInventory': self.device_id},
+                '$set': {'lastUpdated': self.last_updated}
+            }
         )
         child_logger.info(f"Device id {self.device_id} upserted to plant {plant_id} device_inventory.")
 
     def _update_room_device_inventory(self, room_id: int):
         rooms_collection.update_one(
             {'roomId': room_id},
-            {'$addToSet': {'device_inventory': self.device_id}}
+            {'$addToSet': {'deviceInventory': self.device_id}}
         )
         child_logger.info(f"Device id {self.device_id} upserted to room {room_id} device_inventory.\n")
 
@@ -156,6 +160,7 @@ class Plant(BaseModelWithTimestamp):
 
     def save_to_db(self) -> None:
         child_logger.debug(f"Entering save_to_db method for plant_id: {self.plant_id}")
+        print()
         try:
             child_logger.info(f"""Starting update/insert for plant {self.plant_id} in room {self.room_id} ...""")
 
@@ -211,94 +216,96 @@ class Plant(BaseModelWithTimestamp):
         
         
 
-    def remove_from_db(self) -> None:
-        child_logger.debug(f"Entering remove_from_db method for plant_id: {self.plant_id}")
-        try:
-            child_logger.info(f"Starting removal process for plant {self.plant_id} in room {self.room_id}...")
+    # def remove_from_db(self) -> None:
+    #     child_logger.debug(f"Entering remove_from_db method for plant_id: {self.plant_id}")
+    #     try:
+    #         child_logger.info(f"Starting removal process for plant {self.plant_id} in room {self.room_id}...")
 
-            # Remove the plant document from the database
-            delete_result = plants_collection.delete_one({"plantId": self.plant_id})
+    #         # Remove the plant document from the database
+    #         delete_result = plants_collection.delete_one({"plantId": self.plant_id})
 
-            if delete_result.deleted_count > 0:
-                child_logger.info(f"Successfully deleted plant {self.plant_id} from the database.")
-            else:
-                child_logger.warning(f"Plant {self.plant_id} does not exist in the database. No action taken.")
+    #         if delete_result.deleted_count > 0:
+    #             child_logger.info(f"Successfully deleted plant {self.plant_id} from the database.")
+    #         else:
+    #             child_logger.warning(f"Plant {self.plant_id} does not exist in the database. No action taken.")
 
-            # Perform the pull for the room (removing plant_id from plant_inventory)
-            self.pull_room()
+    #         # Perform the pull for the room (removing plant_id from plant_inventory)
+    #         self.pull_room()
 
-        except PyMongoError as e:
-            # Handle database errors
-            child_logger.error(f"Error occurred during plant removal: {e}.")
+    #     except PyMongoError as e:
+    #         # Handle database errors
+    #         child_logger.error(f"Error occurred during plant removal: {e}.")
 
-        child_logger.debug(f"Exiting remove_from_db method for plant_id: {self.plant_id}\n")
+    #     child_logger.debug(f"Exiting remove_from_db method for plant_id: {self.plant_id}\n")
 
 
 
-    def pull_room(self):
-        # Remove the plant_id from the room's plantInventory
-        room_update_result = rooms_collection.update_one(
-            {"roomId": self.room_id},
-            {"$pull": {"plantInventory": self.plant_id}},  # Remove plant_id from inventory
-        )
-        if room_update_result.modified_count > 0:
-            child_logger.info(f"Removed plant {self.plant_id} from room {self.room_id}'s inventory.")
-        else:
-            child_logger.warning(f"Plant {self.plant_id} was not found in room {self.room_id}'s inventory.")
+    # def pull_room(self):
+    #     # Remove the plant_id from the room's plantInventory
+    #     room_update_result = rooms_collection.update_one(
+    #         {"roomId": self.room_id},
+    #         {"$pull": {"plantInventory": self.plant_id}},  # Remove plant_id from inventory
+    #     )
+    #     if room_update_result.modified_count > 0:
+    #         child_logger.info(f"Removed plant {self.plant_id} from room {self.room_id}'s inventory.")
+    #     else:
+    #         child_logger.warning(f"Plant {self.plant_id} was not found in room {self.room_id}'s inventory.")
     
     
 
 
 if __name__ == "__main__":
     ## test plant
-    plant_dict = {
-    "plantId": 202,
-    "roomId": 2,
-    "plantKind": "Lettuce",
-    "plantDate": "2024-07-28",
-    "deviceInventory": [10102, 10101, {}],
-
-}
-    try:
-        plant1 = Plant(**plant_dict)
-        print(plant1.model_dump(by_alias=False))
-        plant1.save_to_db()
-    except ValidationError as e:
-        print(e.json())
+    def p():
+        plant_dict = {
+        "plantId": 201,
+        "roomId": 2,
+        "plantKind": "Lettuce",
+        "plantDate": "2024-07-28",
+        "deviceInventory": [],
+        "lastUpdated": "2024-03-14 12:41:45"
+    }       
+        try:
+            plant1 = Plant(**plant_dict)
+            print(plant1.model_dump(by_alias=False))
+            plant1.save_to_db()
+        except ValidationError as e:
+            print(e.json())
 
     ### test device
-    # device_dict = {
-    #     "deviceId": 20109,
-    #     "deviceType": "sensor", 
-    #     "deviceName": "tempsen",
-    #     "deviceStatus": "ON",
-    #     "statusOptions": [
-    #         "DISABLE",
-    #         "ON"
-    #     ],
-    #     "deviceLocation": {
-
-    #         "roomId": 2
-    #     },
-    #     "measureTypes": [
-    #         "temperature"
-    #     ],
-    #     "availableServices": [
-    #         "MQTT"
-    #     ],
-    #     "servicesDetails": [
-    #         {
-    #             "serviceType": "MQTT",
-    #             "topic": [
-    #                 "SC4SS/sensor/1/000/temperature"
-    #             ]
-    #         }
-    #     ],
-    #     "lastUpdate": "2024-03-14 12:41:45"
-    # }
-    # device1 = Device(**device_dict)
-    # child_logger.info(device1.model_dump_with_time())
-    # device1.save_to_db()
+    def d():
+        device_dict = {
+            "deviceId": 20009,
+            "deviceType": "sensor", 
+            "deviceName": "tempsen",
+            "deviceStatus": "ON",
+            "statusOptions": [
+                "DISABLE",
+                "ON"
+            ],
+            "deviceLocation": {
+                "plantId": 102,
+                "roomId": 2
+            },
+            "measureTypes": [
+                "temperature"
+            ],
+            "availableServices": [
+                "MQTT"
+            ],
+            "servicesDetails": [
+                {
+                    "serviceType": "MQTT",
+                    "topic": [
+                        "SC4SS/sensor/1/000/temperature"
+                    ]
+                }
+            ],
+            "lastUpdate": "2024-03-14 12:41:45"
+        }
+        device1 = Device(**device_dict)
+        child_logger.info(device1.model_dump_with_time())
+        device1.save_to_db()
     
     # plant1 = Plant(**camel_snake_handler_for_dict(plant_dict, from_type="camel"))
     # plant_dict =plant1.model_dump()
@@ -307,3 +314,5 @@ if __name__ == "__main__":
     # child_logger.info(plant_dict_updated)
     
     # plant1.remove_from_db()
+    # p()
+    # d()
