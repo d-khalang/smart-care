@@ -98,7 +98,10 @@ class Device(BaseModelWithTimestamp):
 
         except Exception as e:
             child_logger.error(f"Error saving device {self.device_id} to database: {str(e)}")
-            raise
+            return {"success": False, "message": f"Failed to registere the device: {str(e)}"}
+
+        return {"success": True, "message": "Device registered successfully"}
+
 
     ### Helper functions
     def _check_plant_exists(self, plant_id: int):
@@ -158,7 +161,7 @@ class Plant(BaseModelWithTimestamp):
         self.device_inventory = []
 
 
-    def save_to_db(self) -> None:
+    def save_to_db(self) -> dict:
         child_logger.debug(f"Entering save_to_db method for plant_id: {self.plant_id}")
         print()
         try:
@@ -183,10 +186,10 @@ class Plant(BaseModelWithTimestamp):
 
         except PyMongoError as e:
             child_logger.error(f"Error occurred durring update/insert: {e}.")
-
+            return {"success": False, "message": f"Failed to registere the plant: {str(e)}"}
 
         child_logger.debug(f"Exiting save_to_db method for plant_id: {self.plant_id}\n")
-
+        return {"success": True, "message": "Plant registered successfully"}
 
     def _upsert_plant(self, updated_data: dict) -> None:
         plant_update_result = plants_collection.update_one(
@@ -253,6 +256,19 @@ class Plant(BaseModelWithTimestamp):
     
     
 
+### Param models
+class DeviceParam(BaseModelAlias):
+    measureType: Optional[str]=None
+    device_type: Optional[str]=None
+    plant_id: Optional[int] = None
+    room_id: Optional[int] = None
+    no_detail: bool=False
+
+
+
+
+
+
 
 if __name__ == "__main__":
     ## test plant
@@ -307,6 +323,18 @@ if __name__ == "__main__":
         child_logger.info(device1.model_dump_with_time())
         device1.save_to_db()
     
+    def pa():
+        params ={
+            "device_type": "sensor",
+            "deviceLocation": {
+                "plantId": 102,
+                "roomId": 2
+            },
+            "measureType": "temperature",
+            "noDetail":"True"
+        }
+        param1 = DeviceParam(**params)
+        child_logger.info(param1.model_dump())
     # plant1 = Plant(**camel_snake_handler_for_dict(plant_dict, from_type="camel"))
     # plant_dict =plant1.model_dump()
     # plant_dict_updated = plant1.model_dump_with_time()
@@ -316,3 +344,4 @@ if __name__ == "__main__":
     # plant1.remove_from_db()
     # p()
     # d()
+    pa()
