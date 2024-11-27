@@ -29,6 +29,7 @@ class Cleaner():
         # Reschedule the periodic cleanup every x minutes
         self.scheduler.enter(self.interval, 1, self.cleanup, ())
 
+
     # Removes outdated plants
     def _cleanup_plants(self):
         a_threshold_ago = datetime.datetime.now() - datetime.timedelta(minutes=self.threshold)
@@ -42,6 +43,7 @@ class Cleaner():
             last_updated = datetime.datetime.strptime(plant['lastUpdated'], "%Y-%m-%d %H:%M:%S")
             if last_updated < a_threshold_ago:
                 self.db.delete_plant(plant['plantId'])
+
 
     # Removes outdated devices
     def _cleanup_devices(self):
@@ -57,6 +59,7 @@ class Cleaner():
             last_updated = datetime.datetime.strptime(device['lastUpdated'], "%Y-%m-%d %H:%M:%S")
             if last_updated < a_threshold_ago:
                 self.db.delete_device(device['deviceId'])
+
 
     # Removes empty rooms
     def _cleanup_empty_rooms(self):
