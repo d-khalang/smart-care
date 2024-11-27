@@ -1,33 +1,21 @@
-import os
+"""Pydantic models for validations and registration of plants and devices"""
+
 from typing_extensions import Literal
-from pydantic import BaseModel, ValidationError, ConfigDict, model_validator
+from pydantic import BaseModel, ValidationError, ConfigDict
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 from datetime import datetime
-from typing import List, Optional, Dict, Literal, Union, Any
-from dotenv import load_dotenv
-from registry import logger, to_camel_case, to_lower_camel_case, camel_to_snake, camel_snake_handler_for_dict
+from typing import List, Optional, Dict, Literal, Any
+from config import Config, MyLogger
+from utility import to_lower_camel_case
 
-# Import environmental variables
-load_dotenv()
-MONGO_URL = os.getenv("MONGO_URL")
-DB = os.getenv("DB")
-PLANTS_COLLECTION = os.getenv("PLANTS_COLLECTION")
-ROOMS_COLLECTION =  os.getenv("ROOMS_COLLECTION")
-DEVICES_COLLECTION = os.getenv("DEVICES_COLLECTION")
-LOGGER_NAME = os.getenv("MODEL_LOGGER")
+client = MongoClient(Config.MONGO_URL)
+db = client[Config.DB]
+plants_collection = db[Config.PLANTS_COLLECTION]
+rooms_collection = db[Config.ROOMS_COLLECTION]
+devices_collection = db[Config.DEVICES_COLLECTION]
 
-# Logger configuartion (child from the main logger)
-child_logger = logger.getChild(LOGGER_NAME)
-
-# MongoDB client and collections
-mongo_client = MongoClient(MONGO_URL)
-db = mongo_client[DB]
-plants_collection = db[PLANTS_COLLECTION]
-rooms_collection = db[ROOMS_COLLECTION]
-devices_collection = db[DEVICES_COLLECTION]
-
-
+model_logger = MyLogger.set_logger(logger_name=Config.MODEL_LOGGER)
 
 class BaseModelWithTimestamp(BaseModel):
     last_updated: Optional[str] = None
@@ -77,10 +65,10 @@ class Device(BaseModelWithTimestamp):
     services_details: List[ServicesDetail]
 
     def save_to_db(self):
-        child_logger.debug(f"Entering save_to_db method for device_id: {self.device_id}")
+        model_logger.debug(f"Entering save_to_db method for device_id: {self.device_id}")
         print()
         try:
-            child_logger.info(f"""Starting update/insert for device {self.device_id} in room {self.device_location.room_id} for plant {self.device_location.plant_id}...""")
+            model_logger.info(f"""Starting update/insert for device {self.device_id} in room {self.device_location.room_id} for plant {self.device_location.plant_id}...""")
             plant_id = self.device_location.plant_id
             room_id = self.device_location.room_id
 
@@ -97,7 +85,7 @@ class Device(BaseModelWithTimestamp):
             self._update_room_device_inventory(room_id)
 
         except Exception as e:
-            child_logger.error(f"Error saving device {self.device_id} to database: {str(e)}")
+            model_logger.error(f"Error saving device {self.device_id} to database: {str(e)}")
             return {"success": False, "message": f"Failed to registere the device: {str(e)}"}
 
         return {"success": True, "message": "Device registered successfully"}
@@ -107,13 +95,13 @@ class Device(BaseModelWithTimestamp):
     def _check_plant_exists(self, plant_id: int):
         plant = plants_collection.find_one({"plantId": plant_id})
         if not plant:
-            child_logger.error(f"Plant with id {plant_id} does not exist.")
+            model_logger.error(f"Plant with id {plant_id} does not exist.")
             raise ValueError(f"Plant with id {plant_id} does not exist.")
     
     def _check_room_exists(self, room_id: int):
         room = rooms_collection.find_one({'roomId': room_id})
         if not room:
-            child_logger.error(f"Room with id {room_id} does not exist.")
+            model_logger.error(f"Room with id {room_id} does not exist.")
             raise ValueError(f"Room with id {room_id} does not exist.")
         
     def _upsert_device(self):
@@ -124,9 +112,9 @@ class Device(BaseModelWithTimestamp):
             upsert=True
         )
         if device_update_result.upserted_id:
-            child_logger.info(f"Inserted new device with ID {self.device_id}.")
+            model_logger.info(f"Inserted new device with ID {self.device_id}.")
         else:
-            child_logger.info(f"Updated existing device with ID {self.device_id}.")
+            model_logger.info(f"Updated existing device with ID {self.device_id}.")
 
     # Plus, updates plant's last update too
     def _update_plant_device_inventory(self, plant_id: int):
@@ -137,14 +125,14 @@ class Device(BaseModelWithTimestamp):
                 '$set': {'lastUpdated': self.last_updated}
             }
         )
-        child_logger.info(f"Device id {self.device_id} upserted to plant {plant_id} device_inventory.")
+        model_logger.info(f"Device id {self.device_id} upserted to plant {plant_id} device_inventory.")
 
     def _update_room_device_inventory(self, room_id: int):
         rooms_collection.update_one(
             {'roomId': room_id},
             {'$addToSet': {'deviceInventory': self.device_id}}
         )
-        child_logger.info(f"Device id {self.device_id} upserted to room {room_id} device_inventory.\n")
+        model_logger.info(f"Device id {self.device_id} upserted to room {room_id} device_inventory.\n")
 
 
 
@@ -162,10 +150,10 @@ class Plant(BaseModelWithTimestamp):
 
 
     def save_to_db(self) -> dict:
-        child_logger.debug(f"Entering save_to_db method for plant_id: {self.plant_id}")
+        model_logger.debug(f"Entering save_to_db method for plant_id: {self.plant_id}")
         print()
         try:
-            child_logger.info(f"""Starting update/insert for plant {self.plant_id} in room {self.room_id} ...""")
+            model_logger.info(f"""Starting update/insert for plant {self.plant_id} in room {self.room_id} ...""")
 
             # Check if the plant already exists in the database
             existing_plant = plants_collection.find_one({"plantId": self.plant_id})
@@ -174,7 +162,7 @@ class Plant(BaseModelWithTimestamp):
             updated_data = self.model_dump_with_time()
 
             if existing_plant:
-                child_logger.info(f"Plant {self.plant_id} already exists in the database. Preparing to update.")
+                model_logger.info(f"Plant {self.plant_id} already exists in the database. Preparing to update.")
                 # If the plant exists, we want to update only specific fields excluding device_inventory
                 updated_data.pop("deviceInventory", None)
             
@@ -185,10 +173,10 @@ class Plant(BaseModelWithTimestamp):
             self._upsert_room()
 
         except PyMongoError as e:
-            child_logger.error(f"Error occurred durring update/insert: {e}.")
+            model_logger.error(f"Error occurred durring update/insert: {e}.")
             return {"success": False, "message": f"Failed to registere the plant: {str(e)}"}
 
-        child_logger.debug(f"Exiting save_to_db method for plant_id: {self.plant_id}\n")
+        model_logger.debug(f"Exiting save_to_db method for plant_id: {self.plant_id}\n")
         return {"success": True, "message": "Plant registered successfully"}
 
     def _upsert_plant(self, updated_data: dict) -> None:
@@ -198,9 +186,9 @@ class Plant(BaseModelWithTimestamp):
             upsert=True,
         )
         if plant_update_result.upserted_id:
-            child_logger.info(f"Inserted new plant with ID {self.plant_id}.")
+            model_logger.info(f"Inserted new plant with ID {self.plant_id}.")
         else:
-            child_logger.info(f"Updated existing plant with ID {self.plant_id}.")
+            model_logger.info(f"Updated existing plant with ID {self.plant_id}.")
 
     def _upsert_room(self) -> None:
         # Update the room by adding the plant_id to plantInventory if it doesn't exist yet
@@ -210,12 +198,12 @@ class Plant(BaseModelWithTimestamp):
             upsert=True,  # If the room doesn't exist, this will create the room with the plant_id
         )
         if room_update_result.upserted_id:
-            child_logger.info(f"Created new room with ID {self.room_id} and added plant {self.plant_id}.")
+            model_logger.info(f"Created new room with ID {self.room_id} and added plant {self.plant_id}.")
         else:
             if room_update_result.raw_result.get("nModified", 0) > 0:
-                child_logger.info(f"Plant {self.plant_id} is added to room {self.room_id}'s inventory.")
+                model_logger.info(f"Plant {self.plant_id} is added to room {self.room_id}'s inventory.")
             else:
-                child_logger.info(f"Plant {self.plant_id} is already in room {self.room_id}'s inventory.")
+                model_logger.info(f"Plant {self.plant_id} is already in room {self.room_id}'s inventory.")
         
         
 
@@ -320,7 +308,7 @@ if __name__ == "__main__":
             "lastUpdate": "2024-03-14 12:41:45"
         }
         device1 = Device(**device_dict)
-        child_logger.info(device1.model_dump_with_time())
+        model_logger.info(device1.model_dump_with_time())
         device1.save_to_db()
     
     def pa():
@@ -334,7 +322,7 @@ if __name__ == "__main__":
             "noDetail":"True"
         }
         param1 = DeviceParam(**params)
-        child_logger.info(param1.model_dump())
+        model_logger.info(param1.model_dump())
     # plant1 = Plant(**camel_snake_handler_for_dict(plant_dict, from_type="camel"))
     # plant_dict =plant1.model_dump()
     # plant_dict_updated = plant1.model_dump_with_time()
@@ -344,4 +332,4 @@ if __name__ == "__main__":
     # plant1.remove_from_db()
     # p()
     # d()
-    pa()
+    # pa()
