@@ -1,42 +1,25 @@
 import os
-import copy
-from typing import Optional, List, Union
+from typing import Optional, List
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
-from dotenv import load_dotenv
-from registry import logger
+from config import Config
 from utility import create_response
 from models import DeviceParam
 
 
-
-# Import environmental variables
-load_dotenv()
-MONGO_URL = os.getenv("MONGO_URL")
-DB = os.getenv("DB")
-GENERAL_COLLECTION = os.getenv("GENERAL_COLLECTION")
-PLANTS_COLLECTION = os.getenv("PLANTS_COLLECTION")
-ROOMS_COLLECTION =  os.getenv("ROOMS_COLLECTION")
-DEVICES_COLLECTION = os.getenv("DEVICES_COLLECTION")
-PLANT_KINDS_COLLECTION = os.getenv("PLANT_KINDS_COLLECTION")
-LOGGER_NAME = os.getenv("DB_LOGGER")
-
-
-
-
 class Database:
-    def __init__(self) -> None:
+    def __init__(self, logger) -> None:
         # Logger configuartion (child from the main logger)
-        self.child_logger = logger.getChild(LOGGER_NAME)
+        self.child_logger = logger
         
         # Initialize the MongoDB client and database
-        self.client = MongoClient(MONGO_URL)
-        db = self.client[DB]
-        self.general_collection = db[GENERAL_COLLECTION]
-        self.plants_collection = db[PLANTS_COLLECTION]
-        self.rooms_collection = db[ROOMS_COLLECTION]
-        self.devices_collection = db[DEVICES_COLLECTION]
-        self.plant_kinds_collection = db[PLANT_KINDS_COLLECTION]
+        self.client = MongoClient(Config.MONGO_URL)
+        db = self.client[Config.DB]
+        self.general_collection = db[Config.GENERAL_COLLECTION]
+        self.plants_collection = db[Config.PLANTS_COLLECTION]
+        self.rooms_collection = db[Config.ROOMS_COLLECTION]
+        self.devices_collection = db[Config.DEVICES_COLLECTION]
+        self.plant_kinds_collection = db[Config.PLANT_KINDS_COLLECTION]
         # Excludes MongoDB id
         self.defult_projection = {"_id":0}
 
@@ -115,18 +98,14 @@ class Database:
         if device_params:
             if device_params.no_detail:
                 projection["deviceId"] = 1
-            
             if device_params.room_id:
                 query['deviceLocation.roomId'] = device_params.room_id
             if device_params.plant_id:
                 query['deviceLocation.plantId'] = device_params.plant_id
-
             if device_params.measureType:
                 query['measureTypes'] = self._create_case_insensitive_query(device_params.measureType)
-
             if device_params.device_type:
                 query['deviceType'] = device_params.device_type
-
 
         try:
             if not device_id:
@@ -149,6 +128,88 @@ class Database:
         pass
 
 
+    def delete_plant(self, plant_id: int) -> dict:
+        try:
+            # First, delete the plant from the plants collection
+            result = self.plants_collection.delete_one({"plantId": plant_id})
+            if result.deleted_count == 0:
+                return create_response(False, message=f"No plant found with ID {plant_id}", status=404)
+            print()
+            self.child_logger.info(f"Plant with ID {plant_id} deleted from plants collection.")
+
+            # Then, remove the plant from the 'plantInventory' in the associated room(s)
+            room_update_result = self.rooms_collection.update_many(
+                {"plantInventory": plant_id}, 
+                {"$pull": {"plantInventory": plant_id}}
+            )
+            # Check if any rooms were affected by the pull operation
+            if room_update_result.modified_count > 0:
+                self.child_logger.info(f"Pulled plant ID {plant_id} from room(s) plantInventory. "
+                                    f"{room_update_result.modified_count} room(s) affected.")
+            else:
+                self.child_logger.info(f"No room(s) found with plant ID {plant_id} in plantInventory.")
+
+            # Return a success message if the plant was deleted successfully
+            return create_response(True, message=f"Plant with ID {plant_id} deleted successfully", status=200)
+
+        except PyMongoError as e:
+            self.child_logger.error(f"Error deleting plant {plant_id}: {str(e)}")
+            return create_response(False, message=str(e), status=500)
+
+
+    def delete_device(self, device_id: int) -> dict:
+        try:
+            # Delete the device from the devices collection
+            result = self.devices_collection.delete_one({"deviceId": device_id})
+            if result.deleted_count == 0:
+                return create_response(False, message=f"No device found with ID {device_id}", status=404)
+            print()           
+            self.child_logger.info(f"Device with ID {device_id} deleted from devices collection.")
+
+            # Remove the device from the associated plant's deviceInventory
+            # Find the plant associated with the device and remove it from its deviceInventory
+            plant_update_result = self.plants_collection.update_many(
+                {"deviceInventory": device_id},
+                {"$pull": {"deviceInventory": device_id}}
+            )
+            # Check if any plants were affected by the pull operation
+            if plant_update_result.modified_count > 0:
+                self.child_logger.info(f"Pulled device ID {device_id} from plant(s) deviceInventory. "
+                                    f"{plant_update_result.modified_count} plant(s) affected.")
+            else:
+                self.child_logger.info(f"No plant(s) found with device ID {device_id} in deviceInventory.")
+
+            # Remove the device from the associated room's deviceInventory
+            # Find the room associated with the device and remove it from its deviceInventory
+            room_update_result = self.rooms_collection.update_many(
+                {"deviceInventory": device_id},
+                {"$pull": {"deviceInventory": device_id}}
+            )
+            # Check if any rooms were affected by the pull operation
+            if room_update_result.modified_count > 0:
+                self.child_logger.info(f"Pulled device ID {device_id} from room(s) deviceInventory. "
+                                    f"{room_update_result.modified_count} room(s) affected.")
+            else:
+                self.child_logger.info(f"No room(s) found with device ID {device_id} in deviceInventory.")
+
+            # Return a success message if the device was deleted successfully
+            return create_response(True, message=f"Device with ID {device_id} deleted successfully", status=200)
+
+        except PyMongoError as e:
+            self.child_logger.error(f"Error deleting device {device_id}: {str(e)}")
+            return create_response(False, message=str(e), status=500)
+
+
+    def remove_empty_rooms(self):
+        # Check if any room has an empty 'plantInventory' and 'deviceInventory', and delete those rooms
+        rooms_to_delete = self.rooms_collection.find({
+            "$and": [
+                {"plantInventory": {"$size": 0}},  # No plants in the inventory
+                {"deviceInventory": {"$size": 0}}  # No devices in the inventory
+            ]
+        })
+        for room in rooms_to_delete:
+            self.rooms_collection.delete_one({"roomId": room["roomId"]})
 
 
 if __name__ == "__main__":
@@ -157,4 +218,5 @@ if __name__ == "__main__":
     # print(db.find_plants(plant_id=101,no_detail=False))
     # print(db.find_plant_kinds(kind_name="Lettuce",no_detail=False))
     # print(db.find_devices(DeviceParam(**{"no_detail":True, "roomId":1})))
-    print(db.find_plants(plant_id=108))
+    # print(db.find_plants(plant_id=108))
+    print(db.delete_plant(205))
