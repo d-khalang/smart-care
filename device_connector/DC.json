@@ -1,0 +1,70 @@
+{
+    "plants":[
+        {
+            "plantId": 102,
+            "roomId": 1,
+            "plantKind": "Lettuce",
+            "plantDate": "2024-07-28",
+            "deviceInventory": [],
+            "lastUpdated": "2024-03-14 12:41:45"
+        }
+    ],
+    "devices":[
+        {
+            "deviceId": 10101,
+            "deviceType": "sensor", 
+            "deviceName": "phsen",
+            "deviceStatus": "ON",
+            "statusOptions": [
+                "DISABLE",
+                "ON"
+            ],
+            "deviceLocation": {
+                "plantId": 101,
+                "roomId": 1
+            },
+            "measureTypes": [
+                "temperature"
+            ],
+            "availableServices": [
+                "MQTT"
+            ],
+            "servicesDetails": [
+                {
+                    "serviceType": "MQTT",
+                    "topic": [
+                        "SC4SS/sensor/1/101/temperature"
+                    ]
+                }
+            ]
+        },
+        {
+            "deviceId": 10009,
+            "deviceType": "sensor", 
+            "deviceName": "tempsen",
+            "deviceStatus": "ON",
+            "statusOptions": [
+                "DISABLE",
+                "ON"
+            ],
+            "deviceLocation": {
+                "plantId": null,
+                "roomId": 1
+            },
+            "measureTypes": [
+                "temperature"
+            ],
+            "availableServices": [
+                "MQTT"
+            ],
+            "servicesDetails": [
+                {
+                    "serviceType": "MQTT",
+                    "topic": [
+                        "SC4SS/sensor/1/000/temperature"
+                    ]
+                }
+            ]
+        }
+    ]
+}
