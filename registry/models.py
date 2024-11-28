@@ -1,6 +1,5 @@
 """Pydantic models for validations and registration of plants and devices"""
 
-from typing_extensions import Literal
 from pydantic import BaseModel, ValidationError, ConfigDict
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
