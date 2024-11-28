@@ -26,7 +26,7 @@ class Cleaner():
         self._cleanup_empty_rooms()
         self.logger.info("Clean up completed.")
 
-        # Reschedule the periodic cleanup every x minutes
+        # Reschedule the periodic cleanup every x seconds
         self.scheduler.enter(self.interval, 1, self.cleanup, ())
 
 
