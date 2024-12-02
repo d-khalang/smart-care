@@ -1,5 +1,6 @@
 '''Environmental variables provider'''
 import os
+import json
 import logging
 from dotenv import load_dotenv
 
@@ -12,14 +13,27 @@ class Config:
     # REGISTERATION_INTERVAL = os.getenv("PLANT_KINDS_COLLECTION")
     # PLANTS_COLLECTION = os.getenv("PLANTS_COLLECTION")
     # ROOMS_COLLECTION = os.getenv("ROOMS_COLLECTION")
-    # DEVICES_COLLECTION = os.getenv("DEVICES_COLLECTION")
+    MQTT_CLIENT_ID = os.getenv("MQTT_CLIENT_ID")
     LOGGER_NAME = os.getenv("BASE_LOGGER")
     # MODEL_LOGGER = os.getenv("MODEL_LOGGER")
     # HANDLER_LOGGER = os.getenv("HANDLER_LOGGER")
-    # CLEANER_LOGGER = os.getenv("CLEANER_LOGGER")
-    # DB_LOGGER = os.getenv("DB_LOGGER")
-    CONFIG_FILE = int(os.getenv("CONFIG_FILE"))
+    MQTT_LOGGER = os.getenv("MQTT_LOGGER")
+    DATA_COLLECTION_INTERVAL = int(os.getenv("DATA_COLLECTION_INTERVAL", 3))  # seconds
+    DATA_POINTS_FOR_AVERAGE = int(os.getenv("DATA_POINTS_FOR_AVERAGE", 10))
+    CONFIG_FILE = os.getenv("CONFIG_FILE")
     REGISTERATION_INTERVAL = int(os.getenv("REGISTERATION_INTERVAL"))
+
+
+class SensorConfig:
+    MIN_TEMP = os.getenv("MIN_TEMP")
+    MAX_TEMP = os.getenv("MAX_TEMP")
+    MIN_LIGHT = os.getenv("MIN_LIGHT")
+    MAX_LIGHT = os.getenv("MAX_LIGHT")
+    MIN_PH = os.getenv("MIN_PH")
+    MAX_PH = os.getenv("MAX_PH")
+    MIN_SOIL_MOISTURE = os.getenv("MIN_SOIL_MOISTURE")
+    MAX_SOIL_MOISTURE = os.getenv("MAX_SOIL_MOISTURE")
+    SENSORS_TO_CLASS_DICT = json.loads(os.getenv("SENSORS_TO_CLASS_DICT", "{}"))
 
 
 class MyLogger:
