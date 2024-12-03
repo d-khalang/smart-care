@@ -32,7 +32,44 @@ class Handler:
         elif normalized_uri[0] == 'users':
             return self._handle_get_users(normalized_uri, params)
         
+        elif normalized_uri[0] == 'services':
+            return self._handle_get_services(normalized_uri, params)
+        
         return create_response(False, message="Invalid path.", status=404)
+
+
+    def _handle_get_services(self, uri, params):
+        service_name = None
+        if len(uri) > 1:
+            service_name = uri[1]
+        
+        return self.db.find_services(service_name)
+    
+    ### TODO: post put delet serice
+    def _handle_post_service(self, uri, data):
+        if 'name' not in data or 'endpoints' not in data:
+            return create_response(False, message="Invalid input.", status=400)
+        service = self.db.add_service(data)
+        return create_response(True, data=service, status=201)
+
+    def _handle_put_service(self, uri, data):
+        if len(uri) < 2:
+            return create_response(False, message="Service name not specified.", status=400)
+        service_name = uri[1]
+        updated_service = self.db.update_service(service_name, data)
+        if updated_service:
+            return create_response(True, data=updated_service)
+        return create_response(False, message="Service not found.", status=404)
+
+    def _handle_delete_service(self, uri):
+        if len(uri) < 2:
+            return create_response(False, message="Service name not specified.", status=400)
+        service_name = uri[1]
+        result = self.db.delete_service(service_name)
+        if result:
+            return create_response(True, message="Service deregistered successfully.")
+        return create_response(False, message="Service not found.", status=404)
+
 
 
     def _handle_get_general(self, uri):
@@ -41,6 +78,8 @@ class Handler:
             
         if uri[1] == "broker":
             return self.db.find_general(to_find="broker")
+        elif uri[1] == "template":
+            return self.db.find_general(to_find="template")
         
         return create_response(False, message="Invalid general subpath.", status=404)
     

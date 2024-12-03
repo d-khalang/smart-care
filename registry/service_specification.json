@@ -1,0 +1,35 @@
+{
+    "name": "ServiceRegistry",
+    "description": "Central service registry to manage service discovery, registration, and updates.",
+    "endpoints": {
+      "get_services": {
+        "method": "GET",
+        "url": "/services",
+        "description": "Retrieve the list of all registered services."
+      },
+      "get_service": {
+        "method": "GET",
+        "url": "/services/{service_name}",
+        "description": "Retrieve information about a specific service."
+      },
+      "register_service": {
+        "method": "POST",
+        "url": "/services",
+        "description": "Register a new service with the registry."
+      },
+      "update_service": {
+        "method": "PUT",
+        "url": "/services/{service_name}",
+        "description": "Update the information of an existing service."
+      },
+      "delete_service": {
+        "method": "DELETE",
+        "url": "/services/{service_name}",
+        "description": "Deregister an existing service."
+      }
+    },
+    "status": "active",
+    "created_at": "2024-12-03T00:00:00Z",
+    "updated_at": "2024-12-03T00:00:00Z"
+  }
+  

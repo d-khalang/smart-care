@@ -16,6 +16,7 @@ class Database:
         self.client = MongoClient(Config.MONGO_URL)
         db = self.client[Config.DB]
         self.general_collection = db[Config.GENERAL_COLLECTION]
+        self.services_collection = db[Config.SERVICES_COLLECTION]
         self.plants_collection = db[Config.PLANTS_COLLECTION]
         self.rooms_collection = db[Config.ROOMS_COLLECTION]
         self.devices_collection = db[Config.DEVICES_COLLECTION]
@@ -28,16 +29,32 @@ class Database:
 
     def find_general(self, to_find: str = 'broker') -> dict:
         try:
-            broker = self.general_collection.find_one({to_find: {"$exists": True}}, {"_id":0})
-            if broker:
-                return create_response(True, content= broker, status=200)
+            item = self.general_collection.find_one({to_find: {"$exists": True}}, {"_id":0})
+            if item:
+                return create_response(True, content= item, status=200)
             else:
-                return create_response(False, message= "No broker found", status=404)
+                return create_response(False, message= f"No {to_find} found", status=404)
         
         except PyMongoError as e:
-            self.child_logger.error(f"Error retrieving broker information: {str(e)}")
+            self.child_logger.error(f"Error retrieving {to_find} information: {str(e)}")
             return create_response(False, message= str(e), status=500)
         
+
+    def find_services(self, service_name: str=None):
+        projection = self.defult_projection.copy()
+        
+        try:
+            if not service_name:
+                services = list(self.services_collection.find({}))
+                return create_response(True, content=services, status=200)
+            
+            service = self.services_collection.find_one({'name': service_name}, projection)
+            return create_response(True, content=service, status=200)
+            
+        except PyMongoError as e:
+            self.child_logger.error(f"Error retrieving services: {str(e)}")
+            return create_response(False, message= str(e), status=500)
+
 
     def find_plants(self, plant_id: Optional[int] = None, no_detail: bool = False) -> dict:
         projection = self.defult_projection.copy()
