@@ -123,6 +123,33 @@ class Database:
             return create_response(False, message=str(e), status=500)
 
 
+    def update_device_status(self, device_id: int, status: str):
+        try:
+            device = self.devices_collection.find_one({'deviceId': device_id})
+
+            if not device:
+                return create_response(False, message=f"Device with ID {device_id} not found.", status=404)
+
+            # Check if the new status is in statusOptions
+            if status not in device.get('statusOptions', []):
+                return create_response(False, message=f"Status {status} is not a valid status for device {device_id}.", status=400)
+
+            # Proceed to update the status
+            device_update_result = self.devices_collection.update_one(
+                {'deviceId': device_id},
+                {'$set': {"deviceStatus": status}},
+            )
+
+            if device_update_result.modified_count:
+                self.child_logger.info(f"Device {device_id}'s status updated to {status}.")
+                return create_response(True, message=f"Device {device_id}'s status updated to {status}.", status=200)
+            else:
+                return create_response(False, message=f"Device {device_id}'s status already the same as {status}.", status=200)
+
+        except PyMongoError as e:
+            self.child_logger.error(f"Error updating device status: {str(e)}")
+            return create_response(False, message=str(e), status=500)
+
     def find_users(self):
         # TODO
         pass
@@ -213,10 +240,11 @@ class Database:
 
 
 if __name__ == "__main__":
-    db = Database()
+    db = Database("logger")
     # print(db.find_general())
     # print(db.find_plants(plant_id=101,no_detail=False))
     # print(db.find_plant_kinds(kind_name="Lettuce",no_detail=False))
     # print(db.find_devices(DeviceParam(**{"no_detail":True, "roomId":1})))
     # print(db.find_plants(plant_id=108))
-    print(db.delete_plant(205))
+    # print(db.delete_plant(205))
+    db.update_device_status(10011, 'in')

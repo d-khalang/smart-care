@@ -96,7 +96,7 @@ class Handler:
         # elif normalized_uri[0] == 'plant_kinds':
         #     return self._handle_post_plant_kinds(normalized_uri, params)
         
-        if normalized_uri[0] == 'devices':
+        elif normalized_uri[0] == 'devices':
             return self._handle_post_devices(data)
         
         # elif normalized_uri[0] == 'users':
@@ -136,8 +136,6 @@ class Handler:
         return response
 
 
-
-
     def handle_put(self, uri, params, data):
         normalized_uri = self._uri_normalizer(uri)
 
@@ -149,6 +147,10 @@ class Handler:
         #     return self._handle_put_plant_kinds(normalized_uri, params)
         
         if normalized_uri[0] == 'devices':
+            if len(normalized_uri) > 2:
+                if normalized_uri[2] == "status":
+                    return self._handle_put_device_status(normalized_uri, data)
+
             return self._handle_put_devices(data)
         
         # elif normalized_uri[0] == 'users':
@@ -188,6 +190,18 @@ class Handler:
             response.update({"status":201}) if response.get("success") else response
         return response
 
+
+    def _handle_put_device_status(self, uri, data):
+        try:
+            device_id = int(uri[1])
+        except ValueError as e:
+            return create_response(False, message=f"Device ID must be a number, not '{uri[1]}': {str(e)}", status=400)
+        
+        status = data.get("status")
+        print("status: ", status)
+        if status:
+            return self.db.update_device_status(device_id=device_id, status=status)
+        return create_response(False, message=f"No status present in the body.", status=500)
 
 
     def handle_delete(self, uri, params):
