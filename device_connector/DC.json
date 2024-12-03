@@ -61,7 +61,7 @@
                 {
                     "serviceType": "MQTT",
                     "topic": [
-                        "SC4SS/sensor/1/100/temperature"
+                        "SC4SS/sensor/1/000/temperature"
                     ]
                 }
             ]
@@ -90,7 +90,7 @@
                 {
                     "serviceType": "MQTT",
                     "topic": [
-                        "SC4SS/command/1/100/temperature"
+                        "SC4SS/actuator/1/000/temperature"
                     ]
                 }
             ]

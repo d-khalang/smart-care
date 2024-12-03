@@ -273,7 +273,7 @@ class DeviceConnector:
 
     def get_broker(self):
         try:
-            url = f"{self.catalog_address}/general/broker"
+            url = f"{self.catalog_address}/{self.config.GENERAL_ENDPOINT}/broker"
             self.logger.info(f"Fetching broker information from {url} ...")
             response = requests.get(url)
             response.raise_for_status()
