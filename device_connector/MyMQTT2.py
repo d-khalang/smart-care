@@ -35,7 +35,7 @@ class MyMQTT:
         # just to remember that it works also as a subscriber
         self._isSubscriber = True
         self._topic.append(topic)
-        self.logger.info("subscribed to %s (MyMQTT2)" % (topic))
+        self.logger.info("subscribed to %s" % (topic))
 
     def start(self):
         # manage connection to broker
