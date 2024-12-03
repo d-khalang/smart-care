@@ -33,7 +33,7 @@
                 {
                     "serviceType": "MQTT",
                     "topic": [
-                        "git /sensor/1/101/PH"
+                        "SC4SS/sensor/1/101/PH"
                     ]
                 }
             ]
@@ -61,7 +61,36 @@
                 {
                     "serviceType": "MQTT",
                     "topic": [
-                        "SC4SS/sensor/1/000/temperature"
+                        "SC4SS/sensor/1/100/temperature"
+                    ]
+                }
+            ]
+        },
+        {
+            "deviceId": 10011,
+            "deviceType": "actuator", 
+            "deviceName": "heater",
+            "deviceStatus": "ON",
+            "statusOptions": [
+                "DISABLE",
+                "ON",
+                "OFF"
+            ],
+            "deviceLocation": {
+                "plantId": null,
+                "roomId": 1
+            },
+            "measureTypes": [
+                "temperature"
+            ],
+            "availableServices": [
+                "MQTT"
+            ],
+            "servicesDetails": [
+                {
+                    "serviceType": "MQTT",
+                    "topic": [
+                        "SC4SS/command/1/100/temperature"
                     ]
                 }
             ]
