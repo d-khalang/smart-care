@@ -61,9 +61,12 @@ class DeviceConnector:
             ]
         }
 
-        self._initiate(config_file=self.config.CONFIG_FILE)
+        self.initiate(config_file=self.config.CONFIG_FILE)
+        # Register plants and devices on catalog
+        self.register(initial=True)
         self.get_broker()
-        self._initiate_mqtt()
+        self.initiate_mqtt()
+        self.subscribe_to_actuators()
         self.initialize_sensors() # Initialize sensors after loading devices
         self.start_data_collection_thread()  # Start data collection in a separate thread
 
@@ -72,7 +75,7 @@ class DeviceConnector:
     # TODO: serivice registry    
 
 
-    def _initiate(self, config_file: str):
+    def initiate(self, config_file: str):
         # Check if the file exists
         if not os.path.exists(config_file):
             raise FileNotFoundError(f"Configuration file {config_file} not found.")
@@ -99,17 +102,26 @@ class DeviceConnector:
             device = Device(**device_data)
             self.add_device(device)
 
-        # Register plants and devices on catalog
-        self.register(initial=True)
 
-
-
-    def _initiate_mqtt(self):
+    def initiate_mqtt(self):
         self.mqtt_client = MyClientMQTT(clientID = self.config.MQTT_CLIENT_ID,
                                         broker=self.broker,
                                         port=self.port,
                                         host=self,
                                         child_logger=MyLogger.set_logger(logger_name=Config.MQTT_LOGGER))
+    
+
+    def stop_mqtt(self):
+        self.mqtt_client.stop()
+
+    def subscribe_to_actuators(self):
+        self.logger.info("Subscribing to actuators' topics...")
+        for device in self.devices:
+            if device.device_type == "actuator":
+                for service_detail in device.services_details:
+                            if service_detail.service_type == "MQTT":
+                                for topic in service_detail.topic:
+                                    self.mqtt_client.subscribe(topic)
 
 
     def initialize_sensors(self):
@@ -149,11 +161,6 @@ class DeviceConnector:
         self._register_plants(initial)
         self._register_devices(initial)
         print()
-
-        # if not initial:
-        #     # Reschedule the periodic registration every x seconds
-        #     self.logger.info("Reshceduling registration...")
-        #     self.scheduler.enter(self.registration_interval, 1, self.register, ())
 
 
     def _register_plants(self, initial: bool=False):
@@ -264,11 +271,6 @@ class DeviceConnector:
                 self.logger.error(f"Sensor dictionary not found for sensor {sensor_key}")
             
 
-
-    # def get_broker(self):
-    #     self.broker = "mqtt.eclipseprojects.io"
-    #     self.port = 1883
-
     def get_broker(self):
         try:
             url = f"{self.catalog_address}/general/broker"
@@ -301,13 +303,20 @@ class DeviceConnector:
         event = msg["e"][0]
         print(f"{topic} measured a {event['n']} of {event['v']} {event['u']} at time {event['t']}")
 
+        #TODO:change the status of device in catalog
+
+
+
+
+
 if __name__ == "__main__":
     dc = DeviceConnector(config=Config)
     
     while True:
         time.sleep(10)
         print(".........")
-        
+    else:
+        dc.stop_mqtt()
         
         # dc.collect_and_average_sensor_data()
 
