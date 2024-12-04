@@ -245,7 +245,7 @@ class Plant(BaseModelWithTimestamp):
 
 ### Param models
 class DeviceParam(BaseModelAlias):
-    measureType: Optional[str]=None
+    measure_type: Optional[str]=None
     device_type: Optional[str]=None
     plant_id: Optional[int] = None
     room_id: Optional[int] = None
