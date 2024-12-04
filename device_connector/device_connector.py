@@ -164,8 +164,14 @@ class DeviceConnector:
 
 
     def _register_plants(self, initial: bool=False):
-        url = f"{self.catalog_address}/{self.config.PLANTS_ENDPOINT}"
         method = "POST" if initial else "PUT"
+        endpoint = self._discover_service(self.config.PLANTS_ENDPOINT, method=method)
+        if endpoint:
+            url = f"{self.catalog_address}{endpoint}"
+        else:
+            self.logger.error(f"Failed to get plants endpoint")
+            return
+            
         for plant in self.plants:
             self.logger.info(f"Registring plant {plant.plant_id} ...")
             self._send_request(method, url, plant.model_dump(), 
@@ -173,8 +179,14 @@ class DeviceConnector:
 
 
     def _register_devices(self, initial: bool=False):
-        url = f"{self.catalog_address}/{self.config.DEVICES_ENDPOINT}"
-        method = 'POST' if initial else 'PUT'
+        method = "POST" if initial else "PUT"
+        endpoint = self._discover_service(self.config.DEVICES_ENDPOINT, method=method)
+        if endpoint:
+            url = f"{self.catalog_address}{endpoint}"
+        else:
+            self.logger.error(f"Failed to get devices endpoint")
+            return
+
         for device in self.devices:
             self.logger.info(f"Registring device {device.device_id} ...")
             self._send_request(method, url, device.model_dump(), 
@@ -272,8 +284,14 @@ class DeviceConnector:
             
 
     def get_broker(self):
+        endpoint = self._discover_service("general", 'GET')
         try:
-            url = f"{self.catalog_address}/{self.config.GENERAL_ENDPOINT}/broker"
+            if endpoint:    
+                url = f"{self.catalog_address}{endpoint}/broker"
+            else:
+                self.logger.error(f"Failed to get service endpoint")
+                return
+            
             self.logger.info(f"Fetching broker information from {url} ...")
             response = requests.get(url)
             response.raise_for_status()
@@ -294,6 +312,36 @@ class DeviceConnector:
         except ValueError as e:
             self.logger.error(f"Invalid broker information received: {e}")
 
+
+    def _discover_service(self, item: str, method: Literal['GET', 'POST', 'PUT', 'DELETE'], sub_path: str=None):
+        try:
+            url = f"{self.catalog_address}/{self.config.SERVICES_ENDPOINT}/{self.config.SERVICE_REGISTRY_NAME}"
+            response = requests.get(url)
+            response.raise_for_status()
+
+            service_response = response.json()
+
+            if service_response.get("success"):
+                # Extract the service registry from the response
+                service_registry = service_response.get("content", [])
+                service = service_registry[0]
+                if service:
+                    endpoints = service.get("endpoints", [])
+                    for endpoint in endpoints:
+                        path = endpoint.get("path", "")
+                        service_method = endpoint.get("method", "")
+
+                        if item in path and method == service_method:
+                            if sub_path:
+                                if sub_path in path:
+                                    return path
+                            else:
+                                return path
+                            
+            self.logger.error(f"Failed to discover service endpoint")
+
+        except requests.RequestException as e:
+            self.logger.error(f"Failed to fetch services endpoint: {e}")
 
 
     def notify(self, topic, payload):
