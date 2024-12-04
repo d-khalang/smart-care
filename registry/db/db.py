@@ -31,9 +31,9 @@ class Database:
         try:
             item = self.general_collection.find_one({to_find: {"$exists": True}}, {"_id":0})
             if item:
-                return create_response(True, content= item, status=200)
+                return create_response(True, content=item, status=200)
             else:
-                return create_response(False, message= f"No {to_find} found", status=404)
+                return create_response(False, message=f"No {to_find} found", status=404)
         
         except PyMongoError as e:
             self.child_logger.error(f"Error retrieving {to_find} information: {str(e)}")
@@ -49,11 +49,11 @@ class Database:
                 return create_response(True, content=services, status=200)
             
             service = self.services_collection.find_one({'name': service_name}, projection)
-            return create_response(True, content=service, status=200)
+            return create_response(True, content=[service], status=200)
             
         except PyMongoError as e:
             self.child_logger.error(f"Error retrieving services: {str(e)}")
-            return create_response(False, message= str(e), status=500)
+            return create_response(False, message=str(e), status=500)
 
 
     def find_plants(self, plant_id: Optional[int] = None, no_detail: bool = False) -> dict:
@@ -66,19 +66,19 @@ class Database:
             # List all plants
             if not plant_id:
                 plants = list(self.plants_collection.find({"plantId": {"$exists": True}}, projection))
-                return create_response(True, content= plants, status=200)
+                return create_response(True, content=plants, status=200)
             
             # An specific plant
             else:
                 plant = self.plants_collection.find_one({"plantId": plant_id}, projection)
                 if plant:
-                    return create_response(True, content= plant, status=200)
+                    return create_response(True, content=[plant], status=200)
                 else:
-                    return create_response(False, message= f"No plant found with ID {plant_id}", status=404)
+                    return create_response(False, message=f"No plant found with ID {plant_id}", status=404)
                 
         except PyMongoError as e:
             self.child_logger.error(f"Error retrieving plants: {str(e)}")
-            return create_response(False, message= str(e), status=500)
+            return create_response(False, message=str(e), status=500)
     
 
     def find_plant_kinds(self, kind_name: Optional[str] = None, no_detail: bool = False) -> dict:
@@ -91,19 +91,19 @@ class Database:
             # List all plant kinds (case-insensitive)
             if not kind_name: 
                 kinds = list(self.plant_kinds_collection.find({"plantKind": {"$exists": True}}, projection))
-                return create_response(True, content= kinds, status=200)
+                return create_response(True, content=kinds, status=200)
             
             # An specific plant kind
             else:
                 kind = self.plant_kinds_collection.find_one({"plantKind": self._create_case_insensitive_query(kind_name)}, projection)
                 if kind:
-                    return create_response(True, content= kind, status=200)
+                    return create_response(True, content=[kind], status=200)
                 else:
-                    return create_response(False, message= f"No kind found with name {kind_name}", status=404)
+                    return create_response(False, message=f"No kind found with name {kind_name}", status=404)
                 
         except PyMongoError as e:
             self.child_logger.error(f"Error retrieving plant kinds: {str(e)}")
-            return create_response(False, message= str(e), status=500)
+            return create_response(False, message=str(e), status=500)
         
 
     def find_devices(self, device_params: Optional[DeviceParam]=None, device_id: Optional[int]=None) -> dict:
@@ -132,15 +132,15 @@ class Database:
             else:
                 device = self.devices_collection.find_one(query, projection)
                 if device:
-                    return create_response(True, content= device, status=200)
+                    return create_response(True, content=[device], status=200)
                 else:
-                    return create_response(False, message= f"No device found with ID {device_id}", status=404)
+                    return create_response(False, message=f"No device found with ID {device_id}", status=404)
         except PyMongoError as e:
             self.child_logger.error(f"Error retrieving devices: {str(e)}")
             return create_response(False, message=str(e), status=500)
 
 
-    def update_device_status(self, device_id: int, status: str):
+    def update_device_status(self, device_id: int, status: str) -> dict:
         try:
             device = self.devices_collection.find_one({'deviceId': device_id})
 
