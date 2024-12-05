@@ -322,6 +322,13 @@ if __name__ == "__main__":
         }
         param1 = DeviceParam(**params)
         model_logger.info(param1.model_dump())
+
+    def dparam():
+        dparams = {
+            'device_type': 'sensor', 'room_id': 1
+        }
+        param = DeviceParam(**dparams)
+        model_logger.info(param.model_dump())
     # plant1 = Plant(**camel_snake_handler_for_dict(plant_dict, from_type="camel"))
     # plant_dict =plant1.model_dump()
     # plant_dict_updated = plant1.model_dump_with_time()
@@ -332,3 +339,4 @@ if __name__ == "__main__":
     # p()
     # d()
     # pa()
+    dparam()
