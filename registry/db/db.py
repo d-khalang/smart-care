@@ -119,8 +119,8 @@ class Database:
                 query['deviceLocation.roomId'] = device_params.room_id
             if device_params.plant_id:
                 query['deviceLocation.plantId'] = device_params.plant_id
-            if device_params.measureType:
-                query['measureTypes'] = self._create_case_insensitive_query(device_params.measureType)
+            if device_params.measure_type:
+                query['measureTypes'] = self._create_case_insensitive_query(device_params.measure_type)
             if device_params.device_type:
                 query['deviceType'] = device_params.device_type
 
