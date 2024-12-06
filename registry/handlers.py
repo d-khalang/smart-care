@@ -35,8 +35,21 @@ class Handler:
         elif normalized_uri[0] == 'services':
             return self._handle_get_services(normalized_uri, params)
         
+        elif normalized_uri[0] == 'rooms':
+            return self._handle_get_rooms(normalized_uri, params)
+        
         return create_response(False, message="Invalid path.", status=404)
 
+    def _handle_get_rooms(self, uri, params):
+        room_id = None
+            
+        if len(uri) > 1:
+            try:
+                room_id = int(uri[1])
+            except ValueError as e:
+                return create_response(False, message=f"Room ID must be a number, not '{uri[1]}': {str(e)}", status=400)
+                
+        return self.db.find_rooms(room_id=room_id)    
 
     def _handle_get_services(self, uri, params):
         service_name = None

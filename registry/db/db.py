@@ -54,6 +54,28 @@ class Database:
         except PyMongoError as e:
             self.child_logger.error(f"Error retrieving services: {str(e)}")
             return create_response(False, message=str(e), status=500)
+        
+    
+    def find_rooms(self, room_id: Optional[int] = None) -> dict:
+        projection = self.defult_projection.copy()
+
+        try:
+            # List all rooms
+            if not room_id:
+                rooms = list(self.rooms_collection.find({"roomId": {"$exists": True}}, projection))
+                return create_response(True, content=rooms, status=200)
+            
+            # An specific room
+            else:
+                room = self.rooms_collection.find_one({"roomId": room_id}, projection)
+                if room:
+                    return create_response(True, content=[room], status=200)
+                else:
+                    return create_response(False, message=f"No plant found with ID {room_id}", status=404)
+                
+        except PyMongoError as e:
+            self.child_logger.error(f"Error retrieving rooms: {str(e)}")
+            return create_response(False, message=str(e), status=500)
 
 
     def find_plants(self, plant_id: Optional[int] = None, no_detail: bool = False) -> dict:
