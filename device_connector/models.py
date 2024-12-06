@@ -33,6 +33,7 @@ class Device(BaseModelAlias):
     measure_types: List[str]
     available_services: List[Literal["MQTT", "REST"]]
     services_details: List[ServicesDetail]
+    room_location: Optional[dict] = {}
 
 
 class Plant(BaseModelAlias):

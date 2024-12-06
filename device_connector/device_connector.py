@@ -92,6 +92,8 @@ class DeviceConnector:
         if 'devices' not in config_data or not config_data['devices']:
             raise ValueError("Configuration file must contain 'devices' field with at least one device.")
         
+        room_location = config_data.get("location", {})
+
         # Populate plants
         for plant_data in config_data['plants']:
             plant = Plant(**plant_data)
@@ -99,7 +101,7 @@ class DeviceConnector:
 
         # Populate devices
         for device_data in config_data['devices']:
-            device = Device(**device_data)
+            device = Device(**device_data, room_location=room_location)
             self.add_device(device)
 
 

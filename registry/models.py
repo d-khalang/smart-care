@@ -62,6 +62,7 @@ class Device(BaseModelWithTimestamp):
     measure_types: List[str]
     available_services: List[Literal["MQTT", "REST"]]
     services_details: List[ServicesDetail]
+    room_location: Optional[dict] = {}
 
     def save_to_db(self):
         model_logger.debug(f"Entering save_to_db method for device_id: {self.device_id}")
@@ -129,7 +130,10 @@ class Device(BaseModelWithTimestamp):
     def _update_room_device_inventory(self, room_id: int):
         rooms_collection.update_one(
             {'roomId': room_id},
-            {'$addToSet': {'deviceInventory': self.device_id}}
+            {
+                '$addToSet': {'deviceInventory': self.device_id},
+                '$set': {'location': self.room_location}
+            }
         )
         model_logger.info(f"Device id {self.device_id} upserted to room {room_id} device_inventory.\n")
 

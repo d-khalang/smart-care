@@ -7,6 +7,13 @@
             "plantDate": "2024-07-28",
             "deviceInventory": [],
             "lastUpdated": "2024-03-14 12:41:45"
+        },
+        {
+            "plantId": 201,
+            "roomId": 2,
+            "plantKind": "Lettuce",
+            "plantDate": "2024-09-28",
+            "deviceInventory": []
         }
     ],
     "devices":[
@@ -94,6 +101,67 @@
                     ]
                 }
             ]
+        },
+        {
+            "deviceId": 20009,
+            "deviceType": "sensor", 
+            "deviceName": "tempsen",
+            "deviceStatus": "ON",
+            "statusOptions": [
+                "DISABLE",
+                "ON"
+            ],
+            "deviceLocation": {
+                "plantId": null,
+                "roomId": 2
+            },
+            "measureTypes": [
+                "temperature"
+            ],
+            "availableServices": [
+                "MQTT"
+            ],
+            "servicesDetails": [
+                {
+                    "serviceType": "MQTT",
+                    "topic": [
+                        "SC4SS/sensor/2/000/temperature"
+                    ]
+                }
+            ]
+        },
+        {
+            "deviceId": 20011,
+            "deviceType": "actuator", 
+            "deviceName": "heater",
+            "deviceStatus": "ON",
+            "statusOptions": [
+                "DISABLE",
+                "ON",
+                "OFF"
+            ],
+            "deviceLocation": {
+                "plantId": null,
+                "roomId": 2
+            },
+            "measureTypes": [
+                "temperature"
+            ],
+            "availableServices": [
+                "MQTT"
+            ],
+            "servicesDetails": [
+                {
+                    "serviceType": "MQTT",
+                    "topic": [
+                        "SC4SS/actuator/2/000/temperature"
+                    ]
+                }
+            ]
         }
-    ]
+    ],
+    "location": {
+        "lat": "45.07049N",
+        "lon": "7.68682E"
+    }
 }
