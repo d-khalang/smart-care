@@ -18,8 +18,8 @@ class Config:
     # MODEL_LOGGER = os.getenv("MODEL_LOGGER")
     # HANDLER_LOGGER = os.getenv("HANDLER_LOGGER")
     MQTT_LOGGER = os.getenv("MQTT_LOGGER")
-    # DATA_COLLECTION_INTERVAL = int(os.getenv("DATA_COLLECTION_INTERVAL", 3))  # seconds
-    # DATA_POINTS_FOR_AVERAGE = int(os.getenv("DATA_POINTS_FOR_AVERAGE", 10))
+    TOPICS_UPDATE_INTERVAL = int(os.getenv("TOPICS_UPDATE_INTERVAL", 200))  # seconds
+    CU_PORT = int(os.getenv("CU_PORT"))
     WEATHER_FORECAST_URL = os.getenv("WEATHER_FORECAST_URL")
     WEATHER_FORECAST_API_KEY = os.getenv("WEATHER_FORECAST_API_KEY")
 

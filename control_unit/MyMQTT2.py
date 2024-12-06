@@ -19,7 +19,7 @@ class MyMQTT:
         self._paho_mqtt.on_message = self.myOnMessageReceived
 
     def myOnConnect(self, paho_mqtt, userdata, flags, rc):
-        print("Connected to %s with result code: %d" % (self.broker, rc))
+        self.logger.info("Connected to %s with result code: %d" % (self.broker, rc))
 
     def myOnMessageReceived(self, paho_mqtt, userdata, msg):
         # A new message is received
@@ -31,7 +31,7 @@ class MyMQTT:
         try:
             self._paho_mqtt.publish(topic, json.dumps(msg), qos=2)
         except Exception as e:
-            print(f"Error publishing message: {e}")
+            self.logger.error(f"Error publishing message: {e}")
 
 
     def mySubscribe(self, topic):
@@ -40,10 +40,10 @@ class MyMQTT:
             self._paho_mqtt.subscribe(topic, qos=2)
             self._isSubscriber = True
             self._topic.append(topic)
-            print(f"Subscribed to {topic}")
+            self.logger.info(f"Subscribed to {topic}")
             
         except Exception as e:
-            print(f"Error subscribing to topic {topic}: {e}")
+            self.logger.error(f"Error subscribing to topic {topic}: {e}")
 
 
     def start(self):
@@ -52,7 +52,7 @@ class MyMQTT:
             self._paho_mqtt.connect(self.broker, self.port)
             self._paho_mqtt.loop_start()
         except Exception as e:
-            print(f"Error starting MQTT client: {e}")
+            self.logger.error(f"Error starting MQTT client: {e}")
 
 
     def unsubscribe(self, topic):
@@ -60,7 +60,7 @@ class MyMQTT:
             try:
                 self._paho_mqtt.unsubscribe(topic)
             except Exception as e:
-                print(f"Error unsubscribing from topic {topic}: {e}")
+                self.logger.error(f"Error unsubscribing from topic {topic}: {e}")
 
     def stop(self):
         if self._isSubscriber:
