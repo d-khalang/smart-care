@@ -197,7 +197,10 @@ class Plant(BaseModelWithTimestamp):
         # Update the room by adding the plant_id to plantInventory if it doesn't exist yet
         room_update_result = rooms_collection.update_one(
             {"roomId": self.room_id},
-            {"$addToSet": {"plantInventory": self.plant_id}},  # ensures no duplicates
+            {   
+                "$addToSet": {"plantInventory": self.plant_id},    # ensures no duplicates
+                '$set': {'plantKind': self.plant_kind}
+            },  
             upsert=True,  # If the room doesn't exist, this will create the room with the plant_id
         )
         if room_update_result.upserted_id:
