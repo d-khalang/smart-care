@@ -199,7 +199,7 @@ class Plant(BaseModelWithTimestamp):
             {"roomId": self.room_id},
             {   
                 "$addToSet": {"plantInventory": self.plant_id},    # ensures no duplicates
-                '$set': {'plantKind': self.plant_kind}
+                '$set': {'plantKind': self.plant_kind, 'plantDate': self.plant_date},
             },  
             upsert=True,  # If the room doesn't exist, this will create the room with the plant_id
         )
@@ -213,42 +213,6 @@ class Plant(BaseModelWithTimestamp):
         
         
 
-    # def remove_from_db(self) -> None:
-    #     child_logger.debug(f"Entering remove_from_db method for plant_id: {self.plant_id}")
-    #     try:
-    #         child_logger.info(f"Starting removal process for plant {self.plant_id} in room {self.room_id}...")
-
-    #         # Remove the plant document from the database
-    #         delete_result = plants_collection.delete_one({"plantId": self.plant_id})
-
-    #         if delete_result.deleted_count > 0:
-    #             child_logger.info(f"Successfully deleted plant {self.plant_id} from the database.")
-    #         else:
-    #             child_logger.warning(f"Plant {self.plant_id} does not exist in the database. No action taken.")
-
-    #         # Perform the pull for the room (removing plant_id from plant_inventory)
-    #         self.pull_room()
-
-    #     except PyMongoError as e:
-    #         # Handle database errors
-    #         child_logger.error(f"Error occurred during plant removal: {e}.")
-
-    #     child_logger.debug(f"Exiting remove_from_db method for plant_id: {self.plant_id}\n")
-
-
-
-    # def pull_room(self):
-    #     # Remove the plant_id from the room's plantInventory
-    #     room_update_result = rooms_collection.update_one(
-    #         {"roomId": self.room_id},
-    #         {"$pull": {"plantInventory": self.plant_id}},  # Remove plant_id from inventory
-    #     )
-    #     if room_update_result.modified_count > 0:
-    #         child_logger.info(f"Removed plant {self.plant_id} from room {self.room_id}'s inventory.")
-    #     else:
-    #         child_logger.warning(f"Plant {self.plant_id} was not found in room {self.room_id}'s inventory.")
-    
-    
 
 ### Param models
 class DeviceParam(BaseModelAlias):
