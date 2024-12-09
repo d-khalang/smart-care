@@ -15,7 +15,7 @@ from MyMQTT2 import MyMQTT
 class MyClientMQTT():
     def __init__(self, clientID, broker, port, host, child_logger):
         self.host = host
-        self.client = MyMQTT(clientID, broker, port, self, child_logger)
+        self.client = MyMQTT(clientID, broker, port, host, child_logger)
         self.start()  
 
     ## Connecting to the broker
@@ -33,9 +33,9 @@ class MyClientMQTT():
     def subscribe(self, topic):
         self.client.mySubscribe(topic)
     
-    # Will be triggered when a message is received
-    def notify(self, topic, payload):
-        self.host.notify(topic, payload)
+    # # Will be triggered when a message is received
+    # def notify(self, topic, payload):
+    #     self.host.notify(topic, payload)
 
 
 
@@ -49,6 +49,7 @@ class DeviceConnector:
         self.logger = MyLogger.get_main_loggger()
         self.broker = None
         self.port = None
+        self.template = {}
         self.msg = {
             "bn": "",
             "e": [
@@ -66,6 +67,7 @@ class DeviceConnector:
         self.register(initial=True)
         self.get_broker()
         self.initiate_mqtt()
+        self.get_topic_template()
         self.subscribe_to_actuators()
         self.initialize_sensors() # Initialize sensors after loading devices
         self.start_data_collection_thread()  # Start data collection in a separate thread
@@ -196,7 +198,7 @@ class DeviceConnector:
 
     
     def _send_request(self, method: str, url: str, data: dict, 
-                      item_id: int, item_type: Literal["plant", "device"]):
+                      item_id: int, item_type: Literal["plant", "device", "status"]):
         try:
             response = requests.request(method, url, json=data)
             self.logger.info(f"{method} Request with response: {response.text}")
@@ -346,6 +348,48 @@ class DeviceConnector:
             self.logger.error(f"Failed to fetch services endpoint: {e}")
 
 
+    def get_topic_template(self):
+        endpoint = self._discover_service("general", 'GET')
+        try:
+            if endpoint:    
+                url = f"{self.catalog_address}{endpoint}/template"
+            else:
+                self.logger.error(f"Failed to get template endpoint")
+                return
+            
+            self.logger.info(f"Fetching template information from {url} ...")
+            response = requests.get(url)
+            response.raise_for_status()
+            template_response = response.json()
+
+            if template_response.get("success"):
+                template = template_response["content"].get("template")
+
+            if template:
+                self.template = template
+                self.logger.info(f"Topic template received: {self.template}.")
+                return
+            
+            self.logger.error(f"Failed to fetch template information.")
+            
+        except requests.RequestException as e:
+            self.logger.error(f"Failed to fetch template information: {e}")
+
+
+    def change_status_on_catalog(self, device_id: int, status: str):
+        endpoint = self._discover_service(self.config.DEVICES_ENDPOINT, method="PUT")
+        if endpoint:
+            endpoint = endpoint.replace('{device_id}', str(device_id))
+            url = f"{self.catalog_address}{endpoint}/status"
+        else:
+            self.logger.error(f"Failed to get devices endpoint")
+            return
+
+        self.logger.info(f"Updating device status on catalog for {device_id} ...")
+        self._send_request("PUT", url, {"status":status}, 
+                               device_id, item_type="status")
+
+
     def notify(self, topic, payload):
         msg = json.loads(payload)
         
@@ -354,7 +398,31 @@ class DeviceConnector:
         print(f"{topic} measured a {event['n']} of {event['v']} {event['u']} at time {event['t']}")
 
         #TODO:change the status of device in catalog
+        msg_info = {}
+        splitted_topic = topic.split("/")
+        try:
+            for key, index in self.template.items():
+                msg_info[key] = splitted_topic[index]
+        except Exception as e:
+            self.logger.warning(f"Unrecognized topic detected: {str(e)}.")
+            return
 
+        msg_info["value"] = event['v']
+
+        for device in self.devices:
+            if int(msg_info["room_id"]) == device.device_location.room_id and \
+            msg_info["measure_type"] == device.device_name:
+                plant_id = msg_info.get("plant_id", "000")
+                if plant_id != "000":
+                    if int(plant_id) != device.device_location.plant_id:
+                        continue
+                new_status = msg_info["value"]
+                if new_status in device.status_options:
+                    device.device_status = new_status
+                    self.change_status_on_catalog(device.device_id, new_status)
+                    return
+                else:
+                    self.logger.info(F"Status {new_status} invalid for device {device.device_name}.")
 
 
 
@@ -362,10 +430,16 @@ class DeviceConnector:
 if __name__ == "__main__":
     dc = DeviceConnector(config=Config)
     
-    while True:
-        time.sleep(10)
-        print(".........")
-    else:
+    try:
+        while True:
+            time.sleep(5)
+            print(......)
+
+    except KeyboardInterrupt:
+        print("Keyboard interrupt detected. Shutting down...")
+        dc.stop_mqtt()
+        
+    finally:
         dc.stop_mqtt()
         
         # dc.collect_and_average_sensor_data()
