@@ -3,6 +3,7 @@ import requests
 import time
 import threading
 import copy
+from datetime import date, datetime
 from typing import Literal, List
 from config import Config, MyLogger
 from MyMQTT2 import MyMQTT
@@ -13,7 +14,7 @@ from utility import create_response
 class MyClientMQTT():
     def __init__(self, clientID, broker, port, host, child_logger):
         self.host = host
-        self.client = MyMQTT(clientID, broker, port, self, child_logger)
+        self.client = MyMQTT(clientID, broker, port, host, child_logger)
         self.start()  
 
     ## Connecting to the broker
@@ -34,9 +35,9 @@ class MyClientMQTT():
     def unsubscribe(self, topic):
         self.client.unsubscribe(topic)
     
-    # Will be triggered when a message is received
-    def notify(self, topic, payload):
-        return self.host.notify(topic, payload)
+    # # Will be triggered when a message is received
+    # def notify(self, topic, payload):
+    #     return self.host.notify(topic, payload)
 
 
 
@@ -52,6 +53,7 @@ class Controler():
         self.endpoint_cache = {}
         self.broker = None
         self.port = None
+        self.template = {}
         self.forecast_url = self.config.WEATHER_FORECAST_URL
         self.forecast_api_key = self.config.WEATHER_FORECAST_API_KEY
         self.msg = {
@@ -426,18 +428,426 @@ class Controler():
         elif msg_info["measure_type"] == "light":
             self.send_light_command(msg_info)
         
-        elif msg_info["measure_type"] == "ph":
+        elif msg_info["measure_type"] in ["ph", "PH"]:
             self.send_PH_command(msg_info)
         
-        elif msg_info["measure_type"] == "soilMoisture":
+        elif msg_info["measure_type"] == "soil_moisture":
             self.send_soilMoisture_command(msg_info)
 
+    def _prepare_topic(self, msg_info: dict):
+        msg_info["device_type"] = 'actuator'
+        reversed_template = {v: k for k, v in self.template.items()}
+        topic_prep_list = sorted(reversed_template.keys())
 
+        topic = ""
+        for index in topic_prep_list:
+            topic += msg_info.get(reversed_template[index]) + "/"
+        return topic.rstrip("/")
     
+    def _get_plant_kind_for_room(self, msg_info: dict):
+        endpoint = self._discover_service("rooms", 'GET')
+        try:
+            if endpoint:    
+                url = f"{self.catalog_address}{endpoint}/{msg_info.get("room_id")}"
+            else:
+                self.logger.error(f"Failed to get rooms endpoint")
+                return
+            
+            response = requests.get(url)
+            response.raise_for_status()
+            rooms_response = response.json()
+
+            if rooms_response.get("success"):
+                rooms_list = rooms_response["content"]
+                if rooms_list:
+                    room = rooms_list[0]
+                    plant_kind = room.get("plantKind", "")
+                    return plant_kind
+            return ""
+            
+        except requests.RequestException as e:
+            self.logger.error(f"Failed to fetch rooms information: {e}")
+    
+    def _get_plant_date_for_room(self, msg_info: dict):
+        endpoint = self._discover_service("rooms", 'GET')
+        try:
+            if endpoint:    
+                url = f"{self.catalog_address}{endpoint}/{msg_info.get("room_id")}"
+            else:
+                self.logger.error(f"Failed to get rooms endpoint")
+                return
+            
+            response = requests.get(url)
+            response.raise_for_status()
+            rooms_response = response.json()
+
+            if rooms_response.get("success"):
+                rooms_list = rooms_response["content"]
+                if rooms_list:
+                    room = rooms_list[0]
+                    plant_date = room.get("plantDate", "")
+                    return plant_date
+            return "2001-01-01"
+            
+        except requests.RequestException as e:
+            self.logger.error(f"Failed to fetch rooms information: {e}")
+
+    def _get_plant_kind_info(self, plant_kind: str):
+        endpoint = self._discover_service("plant_kinds", 'GET')
+        try:
+            if endpoint:    
+                url = f"{self.catalog_address}{endpoint}/{plant_kind}"
+            else:
+                self.logger.error(f"Failed to get plant_kinds endpoint")
+                return
+            
+            response = requests.get(url)
+            response.raise_for_status()
+            plant_kinds_response = response.json()
+
+            if plant_kinds_response.get("success"):
+                plant_kinds_list = plant_kinds_response["content"]
+                if plant_kinds_list:
+                    return plant_kinds_list[0]
+            return {}
+            
+        except requests.RequestException as e:
+            self.logger.error(f"Failed to fetch rooms information: {e}")
+
+    def _find_topic_for_actuator(self, actuators: list, actuator_name: str):
+        topic = ""
+        for actuator in actuators:
+            if actuator["deviceName"] == actuator_name:
+                for services_detail in actuator["servicesDetails"]:
+                    if services_detail.get("serviceType") == "MQTT":
+                        topic = services_detail["topic"][0]
+        return topic
+
+    # Processing the temperature data
+    def send_temp_command(self, msg_info: dict):
+        # # Topic preparation according to the universal template
+        # topic = self._prepare_topic(msg_info)
+
+        # Get corressponding plant kind
+        plant_kind = self._get_plant_kind_for_room(msg_info)
+        if not plant_kind:
+            self.logger.error(f"Faild to figure out plant kind for room {msg_info["room_id"]}")
+        
+        # Getting the suitable temperature of the corresponding plant kind
+        plant_kind_dict = self._get_plant_kind_info(plant_kind)
+        if not plant_kind_dict:
+                self.logger.error(f"Faild to get plant kind information for plant kind {plant_kind}")
+            
+        minTemp, maxTemp, bestTempRange = plant_kind_dict.get("coldestTemperature"), plant_kind_dict.get("hottestTemperature"), plant_kind_dict.get("bestTemperatureRange")
+        outTemp = self.rooms_location.get(int(msg_info["room_id"])).get("outsideTemperature", 0)
+        
+        # Status of the temp actuators of the plant     
+        fan_status, heater_status, window_status = None, None, 'DISABLE'
+        # Fetch temperature actuators of the room
+        actuators = self._get_devices(measure_type="temperature", device_type="actuator", room_id=int(msg_info["room_id"]))
+        for actuator in actuators:
+            if actuator["deviceName"] == "fan_switch":
+                fan_status = actuator.get("deviceStatus")
+            
+            elif actuator["deviceName"] == "heater_switch":
+                heater_status = actuator.get("deviceStatus")
+
+            elif actuator["deviceName"] == "window_switch":
+                window_status = actuator.get("deviceStatus", "DISABLE")
+
+        if not (fan_status and heater_status):
+            self.logger.error('Failed to get the status of the fan and heater')
+            return
+
+        # Checking if actuator is operating
+        if (fan_status and heater_status) != "DISABLE":
+            # Structure the SenML message
+            msg = copy.deepcopy(self.msg)
+            msg["e"][0]["t"] = str(time.time())
+            
+
+            ### Check the temperature regarding the plant suitable temperature
+            # Check if temperature is less than minimum threshold
+            value = msg_info["value"]
+            corresponding_actuator = ""
+            if value < minTemp:
+                if window_status != "DISABLE":
+                    if value > outTemp and outTemp > minTemp and window_status == "CLOSE":
+                        self.logger.info("Temperature less than threshold, OPEN the window")
+                        corresponding_actuator = "window_switch"
+                        msg["e"][0]["v"] = "OPEN"
+                        self.publish_command(actuators, corresponding_actuator, msg)
+                    elif heater_status == "OFF":
+                        self.logger.info("Temperature less than threshold, Turn ON the heater")
+                        corresponding_actuator = "heater_switch"
+                        msg["e"][0]["v"] = "ON"
+                        self.publish_command(actuators, corresponding_actuator, msg)
+                else:
+                    if heater_status == "OFF":
+                        self.logger.info("Temperature less than threshold, Turn ON the heater")
+                        corresponding_actuator = "heater_switch"
+                        msg["e"][0]["v"] = "ON"
+                        self.publish_command(actuators, corresponding_actuator, msg)
+                    if fan_status == "ON":
+                        self.logger.info("Temperature less than threshold, Turn OFF the fan")
+                        corresponding_actuator = "fan_switch"
+                        msg["e"][0]["v"] = "OFF"
+                        self.publish_command(actuators, corresponding_actuator, msg)
+
+            # Check if temperature is more than maximum threshold
+            elif value > maxTemp:
+                if window_status != "DISABLE":
+                    if value < outTemp and outTemp < maxTemp and window_status == "OPEN":
+                        self.logger.info("Temperature more than threshold, CLOSE the window")
+                        corresponding_actuator = "window_switch"
+                        msg["e"][0]["v"] = "CLOSE"
+                        self.publish_command(actuators, corresponding_actuator, msg)
+                    elif fan_status == "OFF":
+                        self.logger.info("Temperature more than threshold, Turn ON the fan")
+                        corresponding_actuator = "fan_switch"
+                        msg["e"][0]["v"] = "ON"
+                        self.publish_command(actuators, corresponding_actuator, msg)
+                else:
+                    if fan_status == "OFF":
+                        self.logger.info("Temperature more than threshold, Turn ON the fan")
+                        corresponding_actuator = "fan_switch"
+                        msg["e"][0]["v"] = "ON"
+                        self.publish_command(actuators, corresponding_actuator, msg)
+                    if heater_status == "ON":
+                        self.logger.info("Temperature more than threshold, Turn OFF the heater")
+                        corresponding_actuator = "heater_switch"
+                        msg["e"][0]["v"] = "OFF"
+                        self.publish_command(actuators, corresponding_actuator, msg)
+            
+            # Check if temperature is in the optimal range
+            elif bestTempRange[0] <= value <= bestTempRange[1]:
+                if window_status != "DISABLE":
+                    if outTemp not in range(bestTempRange[0], bestTempRange[1]) and window_status == "OPEN":
+                        self.logger.info("Temperature in optimal range, but outside temperature is not optimal, CLOSE the window")
+                        corresponding_actuator = "window_switch"
+                        msg["e"][0]["v"] = "CLOSE"
+                        self.publish_command(actuators, corresponding_actuator, msg)
+                if heater_status == "ON":
+                    self.logger.info("Temperature in optimal range, turn OFF the heater")
+                    corresponding_actuator = "heater_switch"
+                    msg["e"][0]["v"] = "OFF"
+                    self.publish_command(actuators, corresponding_actuator, msg)
+                if fan_status == "ON":
+                    self.logger.info("Temperature in optimal range, turn OFF the fan")
+                    corresponding_actuator = "fan_switch"
+                    msg["e"][0]["v"] = "OFF"
+                    self.publish_command(actuators, corresponding_actuator, msg)
+        else:
+            self.logger.warning("The heating actuators are DISABLE!")
+
+
+    # Processing the brightness data and send command if intervention is needed
+    def send_light_command(self, msg_info: dict):
+        # Get corressponding plant kind
+        plant_kind = self._get_plant_kind_for_room(msg_info)
+        if not plant_kind:
+            self.logger.error(f"Faild to figure out plant kind for room {msg_info["room_id"]}")
+        
+        plant_kind_dict = self._get_plant_kind_info(plant_kind)
+        if not plant_kind_dict:
+            self.logger.error(f"Faild to get plant kind information for plant kind {plant_kind}")
+                
+        vegetative_light_range, flowering_light_rang = plant_kind_dict["vegetativeLightRange"], plant_kind_dict["floweringLightRang"]
+
+        # Status of the light switch actuators of the plant
+        light_switch_status = None
+        # Fetch light actuators of the room
+        actuators = self._get_devices(measure_type="light", device_type="actuator", room_id=int(msg_info["room_id"]))
+        actuator = actuators[0]
+        light_switch_status = actuator.get("deviceStatus")
+        
+        if not light_switch_status:
+            self.logger.error('Failed to get the status of the light switch')
+
+        # Checking if actuator is operating
+        if light_switch_status != "DISABLE":
+            plant_date = self._get_plant_date_for_room(msg_info)
+            plant_age = self.days_difference_from_today(plant_date)
+
+            # Structure the SenML message
+            msg = copy.deepcopy(self.msg)
+            msg["e"][0]["t"] = str(time.time())
+            command_value = None
+            value = msg_info["value"]
+
+            ## availableStatuses: ["OFF","LOW","MID","HIGH"]
+            # Vegetative stage
+            if plant_age <= 15:
+                # If brightness is less that what is expected in vegetetive stage
+                # Ligh switch will be put on one level stronger
+                if value < vegetative_light_range[0]:
+                    if light_switch_status == "OFF":
+                        command_value = "LOW"
+                    elif light_switch_status == "LOW":
+                        command_value = "MID"
+                    elif light_switch_status == "MID":
+                        command_value = "HIGH"
+
+                # If brightness is in the range of flowering stage
+                # Ligh switch will be put on one level weaker
+                elif value in range(flowering_light_rang[0], flowering_light_rang[1]):
+                    if light_switch_status == "HIGH":
+                        command_value = "MID"
+                    elif light_switch_status == "MID":
+                        command_value = "LOW"
+                    elif light_switch_status == "LOW":
+                        command_value = "OFF"
+
+                # If brightness is way more than what is expected 
+                # Ligh switch will be shut down
+                elif value > flowering_light_rang[1]:
+                    if light_switch_status != "OFF":
+                        command_value = "OFF"
+                    
+
+            # Flowering stage
+            elif plant_age > 15:
+                ## Set the switch to full power
+                if value < vegetative_light_range[0]:
+                    if light_switch_status != "HIGH":
+                        command_value = "HIGH"
+
+                # One level forward
+                elif value in range(vegetative_light_range[0], vegetative_light_range[1]):
+                    if light_switch_status == "OFF":
+                        command_value = "LOW"
+                    elif light_switch_status == "LOW":
+                        command_value = "MID"
+                    elif light_switch_status == "MID":
+                        command_value = "HIGH"
+
+                # One level backward
+                elif value > flowering_light_rang[1]:
+                    if light_switch_status == "HIGH":
+                        command_value = "MID"
+                    elif light_switch_status == "MID":
+                        command_value = "LOW"
+                    elif light_switch_status == "LOW":
+                        command_value = "OFF"
+
+            if command_value:
+                msg["e"][0]["v"] = command_value
+                self.publish_command(actuators, "light_switch", msg)
+        else:
+            self.logger.warning("Light actuator is DISABLE!")
+
+
+    # Processing the PH data and send command if intervention is needed
+    def send_PH_command(self, msg_info: dict):
+        # Get corressponding plant kind
+        plant_kind = self._get_plant_kind_for_room(msg_info)
+        if not plant_kind:
+            self.logger.error(f"Faild to figure out plant kind for room {msg_info["room_id"]}")
+        
+        plant_kind_dict = self._get_plant_kind_info(plant_kind)
+        if not plant_kind_dict:
+            self.logger.error(f"Faild to get plant kind information for plant kind {plant_kind}")
+                
+        PH_range = plant_kind_dict["PHRange"]
+
+        # Status of the PH switch actuators of the plant
+        PH_actuator_status = None
+        # Fetch PH actuator of the plant
+        actuators = self._get_devices(measure_type="PH", device_type="actuator", 
+                                      room_id=int(msg_info["room_id"]), plant_id=int(msg_info["plant_id"]))
+        if not actuators:
+            return
+        actuator = actuators[0]
+        PH_actuator_status = actuator["deviceStatus"]
+        
+        if not PH_actuator_status:
+            self.logger.error('Failed to get the status of the PH actuator')
+
+        # Checking if actuator is operating
+        if PH_actuator_status != "DISABLE":
+            # Structure the SenML message
+            msg = copy.deepcopy(self.msg)
+            msg["e"][0]["t"] = str(time.time())
+            command_value = None
+            value = msg_info["value"]
+
+            # Setting the command
+            if value < PH_range[0]:
+                command_value = "release_PH_high"
+            elif value > PH_range[1]:
+                command_value = "release_PH_low"
+
+            if command_value:
+                msg["e"][0]["v"] = command_value
+                self.publish_command(actuators, "PH_actuator", msg)
+        else:
+            self.logger.warning("PH actuator is DISABLE!")
+
+
+    # Processing the water level data and send command if intervention is needed
+    def send_soilMoisture_command(self, msg_info: dict):
+        # Get corressponding plant kind
+        plant_kind = self._get_plant_kind_for_room(msg_info)
+        if not plant_kind:
+            self.logger.error(f"Faild to figure out plant kind for room {msg_info["room_id"]}")
+        
+        plant_kind_dict = self._get_plant_kind_info(plant_kind)
+        if not plant_kind_dict:
+            self.logger.error(f"Faild to get plant kind information for plant kind {plant_kind}")
+                
+        minMoisture = plant_kind_dict["volumetricWaterContent"][0]
+
+        # Status of the light switch actuators of the plant
+        irrigator_status = None
+        # Fetch irrigator of the plant
+        actuators = self._get_devices(measure_type="soil_moisture", device_type="actuator", 
+                                      room_id=int(msg_info["room_id"]), plant_id=int(msg_info["plant_id"]))
+        if not actuators:
+            return
+        actuator = actuators[0]
+        irrigator_status = actuator["deviceStatus"]
+        
+        if not irrigator_status:
+            self.logger.error('Failed to get the status of the irrigator')
+
+        # Checking if actuator is operating
+        if irrigator_status != "DISABLE":
+            # Structure the SenML message
+            msg = copy.deepcopy(self.msg)
+            msg["e"][0]["t"] = str(time.time())
+            command_value = None
+            value = msg_info["value"]
+
+            # Setting the command
+            if value < minMoisture:
+                command_value = "pour_water"
+
+            if command_value:
+                msg["e"][0]["v"] = command_value
+                self.publish_command(actuators, "irrigator", msg)
+        else:
+            self.logger.warning("Irrigator is DISABLE!")
 
 
 
+    def publish_command(self, actuators, corresponding_actuator, msg):
+        # Sending command to the actuators 
+            topic = self._find_topic_for_actuator(actuators, corresponding_actuator)
+            msg['bn'] = topic   
+            self.mqtt_client.publish(topic, msg)
+            self.logger.info(f"{msg['e'][0]['v']} is published on topic: {topic}")
 
+
+    def days_difference_from_today(self, plantingDate):
+        today = date.today()
+
+        # Convert the format from string to date obj
+        theDate = datetime.strptime(plantingDate, "%Y-%m-%d").date()
+
+        # Calculate the difference in days
+        difference = (today - theDate).days
+
+        return difference
 
 
 
