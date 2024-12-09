@@ -250,7 +250,7 @@ class Handler:
             return create_response(False, message=f"Device ID must be a number, not '{uri[1]}': {str(e)}", status=400)
         
         status = data.get("status")
-        print("status: ", status)
+        self.logger.info("status: ", status)
         if status:
             return self.db.update_device_status(device_id=device_id, status=status)
         return create_response(False, message=f"No status present in the body.", status=500)
