@@ -60,7 +60,7 @@ class Handler:
     
     ### TODO: post put delet serice
     def _handle_post_service(self, uri, data):
-        if 'name' not in data or 'endpoints' not in data:
+        if 'name' not in data or 'endpoints' not in data or 'host' not in data:
             return create_response(False, message="Invalid input.", status=400)
         service = self.db.add_service(data)
         return create_response(True, data=service, status=201)

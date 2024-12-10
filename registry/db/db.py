@@ -161,6 +161,22 @@ class Database:
             self.child_logger.error(f"Error retrieving devices: {str(e)}")
             return create_response(False, message=str(e), status=500)
 
+    ### TODO: check and add finding service and add post/put confilict to handeler
+    def add_service(self, data: dict) -> dict:
+        name = data.get("name")
+        try:
+            self.services_collection.update_one(
+                {"name":name},
+                {"set": data},
+                upsert=True,
+            )
+            return create_response(True, message=f"Service {name} registered.", status=200)
+        
+        except PyMongoError as e:
+            self.child_logger.error(f"Error updating services: {str(e)}")
+            return create_response(False, message=str(e), status=500)
+        
+
 
     def update_device_status(self, device_id: int, status: str) -> dict:
         try:
