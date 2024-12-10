@@ -55,7 +55,7 @@
                 "ON"
             ],
             "deviceLocation": {
-                "plantId": 101,
+                "plantId": null,
                 "roomId": 1
             },
             "measureTypes": [
@@ -68,7 +68,7 @@
                 {
                     "serviceType": "MQTT",
                     "topic": [
-                        "SC4SS/sensor/1/101/light"
+                        "SC4SS/sensor/1/000/light"
                     ]
                 }
             ]
@@ -229,7 +229,7 @@
                 "HIGH"
             ],
             "deviceLocation": {
-                "plantId": 101,
+                "plantId": null,
                 "roomId": 1
             },
             "measureTypes": [

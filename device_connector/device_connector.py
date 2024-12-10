@@ -235,15 +235,15 @@ class DeviceConnector:
                             self.logger.error(f"Sensor object not found for device {device_id}")
                     time.sleep(self.config.DATA_COLLECTION_INTERVAL)
 
-                averaged_data = {}
                 for device_id, data_list in collected_data.items():
+                    averaged_data = {}
                     if data_list:
                         averaged_data[device_id] = sum(data_list) / len(data_list)
+                        self.logger.info(f"Averaged sensor data: {averaged_data}")
+                        self.prepare_data_to_publish(averaged_data)
+                        time.sleep(self.config.GAP_BETWEEN_PUBLISHES)
                     else:
                         self.logger.warning(f"No data collected for device {device_id}")
-
-                self.logger.info(f"Averaged sensor data: {averaged_data}")
-                self.prepare_data_to_publish(averaged_data)
 
             except Exception as e:
                 self.logger.error(f"Error in data collection loop: {e}")
@@ -288,7 +288,7 @@ class DeviceConnector:
             
 
     def get_broker(self):
-        endpoint = self._discover_service("general", 'GET')
+        endpoint = self._discover_service(self.config.GENERAL_ENDPOINT, 'GET')
         try:
             if endpoint:    
                 url = f"{self.catalog_address}{endpoint}/broker"
@@ -349,7 +349,7 @@ class DeviceConnector:
 
 
     def get_topic_template(self):
-        endpoint = self._discover_service("general", 'GET')
+        endpoint = self._discover_service(self.config.GENERAL_ENDPOINT, 'GET')
         try:
             if endpoint:    
                 url = f"{self.catalog_address}{endpoint}/template"
@@ -433,7 +433,7 @@ if __name__ == "__main__":
     try:
         while True:
             time.sleep(5)
-            print(......)
+            print("......")
 
     except KeyboardInterrupt:
         print("Keyboard interrupt detected. Shutting down...")

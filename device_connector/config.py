@@ -16,7 +16,7 @@ class Config:
     MQTT_CLIENT_ID = os.getenv("MQTT_CLIENT_ID")
     LOGGER_NAME = os.getenv("BASE_LOGGER")
     # MODEL_LOGGER = os.getenv("MODEL_LOGGER")
-    # HANDLER_LOGGER = os.getenv("HANDLER_LOGGER")
+    GAP_BETWEEN_PUBLISHES = int(os.getenv("GAP_BETWEEN_PUBLISHES", 10))
     MQTT_LOGGER = os.getenv("MQTT_LOGGER")
     DATA_COLLECTION_INTERVAL = int(os.getenv("DATA_COLLECTION_INTERVAL", 3))  # seconds
     DATA_POINTS_FOR_AVERAGE = int(os.getenv("DATA_POINTS_FOR_AVERAGE", 10))
