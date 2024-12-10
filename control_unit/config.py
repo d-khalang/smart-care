@@ -16,7 +16,7 @@ class Config:
     MQTT_CLIENT_ID = os.getenv("MQTT_CLIENT_ID")
     LOGGER_NAME = os.getenv("BASE_LOGGER")
     # MODEL_LOGGER = os.getenv("MODEL_LOGGER")
-    # HANDLER_LOGGER = os.getenv("HANDLER_LOGGER")
+    ROOMS_ENDPOINT = os.getenv("ROOMS_ENDPOINT")
     MQTT_LOGGER = os.getenv("MQTT_LOGGER")
     TOPICS_UPDATE_INTERVAL = int(os.getenv("TOPICS_UPDATE_INTERVAL", 200))  # seconds
     CU_PORT = int(os.getenv("CU_PORT"))

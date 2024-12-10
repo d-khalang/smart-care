@@ -105,7 +105,7 @@ class Controler():
 
 
     def _get_room_location(self, room_id: int):
-        endpoint = self._discover_service("rooms", 'GET')
+        endpoint = self._discover_service(self.config.ROOMS_ENDPOINT, 'GET')
         try:
             if endpoint:    
                 url = f"{self.catalog_address}{endpoint}/{room_id}"
@@ -215,12 +215,12 @@ class Controler():
     }
         
         params = {k: v for k, v in local_vars.items() if v is not None}
-        endpoint = self._discover_service("devices", 'GET')
+        endpoint = self._discover_service(self.config.DEVICES_ENDPOINT, 'GET')
         try:
             if endpoint:    
                 url = f"{self.catalog_address}{endpoint}"
             else:
-                self.logger.error(f"Failed to get broker endpoint")
+                self.logger.error(f"Failed to get devices endpoint")
                 return
             
             self.logger.info(f"Fetching sensors information from {url} with params: {params}")
@@ -241,7 +241,7 @@ class Controler():
 
 
     def get_broker(self):
-        endpoint = self._discover_service("general", 'GET')
+        endpoint = self._discover_service(self.config.GENERAL_ENDPOINT, 'GET')
         try:
             if endpoint:    
                 url = f"{self.catalog_address}{endpoint}/broker"
@@ -308,7 +308,7 @@ class Controler():
 
 
     def get_topic_template(self):
-        endpoint = self._discover_service("general", 'GET')
+        endpoint = self._discover_service(self.config.GENERAL_ENDPOINT, 'GET')
         try:
             if endpoint:    
                 url = f"{self.catalog_address}{endpoint}/template"
