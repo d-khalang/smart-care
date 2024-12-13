@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Anta&family=Madimi+One&display=swap" rel="stylesheet">
+    <title>Smart care Interface</title>
+    <style>
+        body {
+            font-family: 'Anta', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+        h1, h2 {
+            font-family: 'Madimi One', sans-serif;
+        }
+        header {
+            background-color: #4CAF50;
+            background-image: linear-gradient(#4CAF50, #85b186);
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        .title {
+            background-color: #85b186;
+            color: rgb(29, 27, 27);
+            text-align: center;
+            padding: 20px;
+            margin: 20px auto;
+            border-radius: 25px;
+            width: 50%;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .plant-card {
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px;
+            background-color: #fff;
+            box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+            transition: 0.3s;
+            display: inline-block;
+            vertical-align: top;
+            width: 300px;
+            text-align: center;
+        }
+        .plant-card:hover {
+            box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2);
+        }
+        .plant-id {
+            background-color: #e6f7e8;
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+        .plant-info {
+            margin-bottom: 10px;
+        }
+        .plant-info h3 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .plant-info p {
+            margin: 5px 0;
+            font-size: 16px;
+        }
+        .device-info {
+            margin-bottom: 20px;
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .device-info p {
+            margin: 5px;
+        }
+        .device-info h4 {
+            margin-top: 0;
+        }
+        .plant-link {
+            text-decoration: none;
+            color: white;
+            background-color: #4CAF50;
+            padding: 10px 15px;
+            border-radius: 5px;
+            transition: 0.3s;
+            display: inline-block;
+        }
+        .plant-link:hover {
+            background-color: #45a049;
+        }
+        .plant-image {
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Smart Care Interface</h1>
+    </header>
+
+    <main>
+        <h2 class="title">Available Plants</h2>
+        {% for plant in plants %}
+        <div class="plant-card">
+            <div class="plant-id">
+                <h3>Plant {{ plant.plantId }}</h3>    
+            </div>
+            <img src="{{ url_for('static', filename=plant.plantId|string + '.jpg') }}" alt="Image of Plant {{ plant.plantId }}" class="plant-image">
+            <div class="plant-info">
+                <p>Plant Kind: {{ plant.plantKind }}</p>
+                <p>Planting Date: {{ plant.plantDate }}</p>
+                <p>Room ID: {{ plant.roomId }}</p>
+                <p>Number of Devices: {{ plant.deviceInventory|length }}</p>
+            </div>
+            <a href="/plant/{{ plant.plantId }}" class="plant-link">View Plant</a>
+            </div>
+            
+        </div>
+        {% endfor %}
+    </main>
+</body>
+</html>
