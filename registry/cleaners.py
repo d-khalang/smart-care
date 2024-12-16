@@ -38,6 +38,7 @@ class Cleaner():
             plants = find_plants_respose.get("content", [])
         else:
             self.logger.error(f"Unable to get plants: {str(find_plants_respose)}")
+            plants =[]
 
         for plant in plants:
             last_updated = datetime.datetime.strptime(plant['lastUpdated'], "%Y-%m-%d %H:%M:%S")
@@ -54,6 +55,7 @@ class Cleaner():
             devices = find_devices_response.get("content", [])
         else:
             self.logger.error(f"Unable to get plants: {str(find_devices_response)}")
+            devices = []
 
         for device in devices:
             last_updated = datetime.datetime.strptime(device['lastUpdated'], "%Y-%m-%d %H:%M:%S")

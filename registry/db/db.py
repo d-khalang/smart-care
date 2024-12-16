@@ -21,6 +21,7 @@ class Database:
         self.rooms_collection = db[Config.ROOMS_COLLECTION]
         self.devices_collection = db[Config.DEVICES_COLLECTION]
         self.plant_kinds_collection = db[Config.PLANT_KINDS_COLLECTION]
+        self.users_collection = db[Config.USERS_COLLECTION]
         # Excludes MongoDB id
         self.defult_projection = {"_id":0}
 
@@ -161,13 +162,43 @@ class Database:
             self.child_logger.error(f"Error retrieving devices: {str(e)}")
             return create_response(False, message=str(e), status=500)
 
+
+    def find_users(self, params):
+       # Create a query based on the parameters
+        query = {}
+        projection = self.defult_projection.copy()
+        
+        if 'user_name' in params:
+            query['userName'] = params['user_name']
+        if 'telegram_id' in params:
+            query['telegramId'] = params['telegram_id']
+        if 'plant_id' in params:
+            query['plantInventory'] = {"$in": [int(params['plant_id'])]}
+
+        try:
+            if not params:
+                users = list(self.users_collection.find(query, projection))
+                return create_response(True, content=users, status=200)
+            # An specific user
+            else:
+                user = self.users_collection.find_one(query, projection)
+                if user:
+                    return create_response(True, content=[user], status=200)
+                else:
+                    return create_response(False, message=f"No user found with params: {params}", status=404)
+                
+        except PyMongoError as e:
+            self.child_logger.error(f"Error retrieving users: {str(e)}")
+            return create_response(False, message=str(e), status=500)
+
+
     ### TODO: check and add finding service and add post/put confilict to handeler
     def add_service(self, data: dict) -> dict:
         name = data.get("name")
         try:
             self.services_collection.update_one(
                 {"name":name},
-                {"set": data},
+                {"$set": data},
                 upsert=True,
             )
             return create_response(True, message=f"Service {name} registered.", status=200)
@@ -176,6 +207,33 @@ class Database:
             self.child_logger.error(f"Error updating services: {str(e)}")
             return create_response(False, message=str(e), status=500)
         
+
+    def add_user(self, data: dict) -> dict:
+        user_name = data["userName"]
+        password = data["password"]
+        plant_id = data["plantId"]
+        telegram_id = data.get("telegramId")
+        
+        try:
+            self.users_collection.update_one(
+                {"userName": user_name},
+                {
+                    "$set": {
+                        "userName": user_name,
+                        "password": password,
+                        "telegramId": telegram_id
+                    },
+                    "$addToSet": {
+                        "plantInventory": plant_id
+                    }
+                },
+                upsert=True
+            )
+            return create_response(True, message=f"User {user_name} registered.", status=200)
+        
+        except PyMongoError as e:
+            self.child_logger.error(f"Error inserting/updating user: {str(e)}")
+            return create_response(False, message=str(e), status=500)
 
 
     def update_device_status(self, device_id: int, status: str) -> dict:
@@ -205,9 +263,6 @@ class Database:
             self.child_logger.error(f"Error updating device status: {str(e)}")
             return create_response(False, message=str(e), status=500)
 
-    def find_users(self):
-        # TODO
-        pass
 
 
     def delete_plant(self, plant_id: int) -> dict:
@@ -292,6 +347,29 @@ class Database:
         })
         for room in rooms_to_delete:
             self.rooms_collection.delete_one({"roomId": room["roomId"]})
+
+
+
+    def delete_plant_from_user_inventory(self, plant_id, telegram_id):
+        try:
+            user_update_result = self.users_collection.update_many(
+                    {"telegramId": telegram_id},
+                    {"$pull": {"plantInventory": plant_id}}
+                )
+            # Check if user was affected by the pull operation
+            if user_update_result.modified_count > 0:
+                self.child_logger.info(f"Pulled plant ID {plant_id} from user(s) plantInventory. "
+                                    f"{user_update_result.modified_count} user(s) affected.")
+            else:
+                self.child_logger.info(f"No plant(s) found with plant ID {plant_id} in plantInventory.")
+                return create_response(False, message=f"No plant(s) found with plant ID {plant_id} in desired plantInventory.", status=404)
+
+            # Return a success message if the plant was deleted successfully
+            return create_response(True, message=f"Plant with ID {plant_id} deleted successfully from plantInventory", status=200)
+
+        except PyMongoError as e:
+            self.child_logger.error(f"Error deleting plant ID {plant_id} from plantInventory: {str(e)}")
+            return create_response(False, message=str(e), status=500)
 
 
 if __name__ == "__main__":

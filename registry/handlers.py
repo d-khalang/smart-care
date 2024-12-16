@@ -58,29 +58,26 @@ class Handler:
         
         return self.db.find_services(service_name)
     
-    ### TODO: post put delet serice
-    def _handle_post_service(self, uri, data):
+
+    def _handle_post_service(self, data):
+        if 'name' not in data or 'endpoints' not in data or 'host' not in data:
+            return create_response(False, message="Invalid input.", status=400)
+        service = self.db.add_service(data)
+        return service
+
+    def _handle_put_service(self, data):
         if 'name' not in data or 'endpoints' not in data or 'host' not in data:
             return create_response(False, message="Invalid input.", status=400)
         service = self.db.add_service(data)
         return create_response(True, data=service, status=201)
 
-    def _handle_put_service(self, uri, data):
-        if len(uri) < 2:
-            return create_response(False, message="Service name not specified.", status=400)
-        service_name = uri[1]
-        updated_service = self.db.update_service(service_name, data)
-        if updated_service:
-            return create_response(True, data=updated_service)
-        return create_response(False, message="Service not found.", status=404)
-
     def _handle_delete_service(self, uri):
         if len(uri) < 2:
             return create_response(False, message="Service name not specified.", status=400)
-        service_name = uri[1]
-        result = self.db.delete_service(service_name)
-        if result:
-            return create_response(True, message="Service deregistered successfully.")
+        # service_name = uri[1]
+        # result = self.db.delete_service(service_name)
+        # if result:
+        #     return create_response(True, message="Service deregistered successfully.")
         return create_response(False, message="Service not found.", status=404)
 
 
@@ -131,9 +128,15 @@ class Handler:
         return self.db.find_devices(device_params, device_id=device_id)
 
 
-    def _handle_get_users(normalized_uri, params):
-        # TODO
-        pass
+    def _handle_get_users(self, normalized_uri, params):
+        plant_id = params.get("plant_id")
+        if plant_id:
+            try:
+                plant_id = int(plant_id)
+            except ValueError as e:
+                return create_response(False, message=f"Plant ID must be a changeable to integer, not '{plant_id}': {str(e)}", status=400)
+        
+        return self.db.find_users(params)
 
 
 
@@ -151,8 +154,11 @@ class Handler:
         elif normalized_uri[0] == 'devices':
             return self._handle_post_devices(data)
         
-        # elif normalized_uri[0] == 'users':
-        #     return self._handle_post_users(normalized_uri, params)
+        elif normalized_uri[0] == 'users':
+            return self._handle_post_users(data)
+
+        elif normalized_uri[0] == 'services':
+            return self._handle_post_service(data)
         
         return create_response(False, message="Invalid path.", status=404)
 
@@ -187,6 +193,16 @@ class Handler:
         response.update({"status":201}) if response.get("success") else response
         return response
 
+    def _handle_post_users(self, data):
+        if 'userName' not in data or 'plantId' not in data or 'password' not in data:
+            return create_response(False, message="Invalid input. 'plantId', 'userName' and 'password' are neccessary.", status=400)
+        try:
+            data["plantId"] = int(data["plantId"])
+        except ValueError as e:
+            return create_response(False, message=f"Plant ID must be a changeable to integer, not '{data["plantId"]}': {str(e)}", status=400)
+        
+        insertion_response = self.db.add_user(data)
+        return insertion_response
 
     def handle_put(self, uri, params, data):
         normalized_uri = self._uri_normalizer(uri)
@@ -198,15 +214,17 @@ class Handler:
         # elif normalized_uri[0] == 'plant_kinds':
         #     return self._handle_put_plant_kinds(normalized_uri, params)
         
-        if normalized_uri[0] == 'devices':
+        elif normalized_uri[0] == 'devices':
             if len(normalized_uri) > 2:
                 if normalized_uri[2] == "status":
                     return self._handle_put_device_status(normalized_uri, data)
-
             return self._handle_put_devices(data)
         
-        # elif normalized_uri[0] == 'users':
-        #     return self._handle_put_users(normalized_uri, params)
+        elif normalized_uri[0] == 'users':
+            return self._handle_put_users(data)
+
+        elif normalized_uri[0] == 'services':
+            return self._handle_put_service(normalized_uri, data)
         
         return create_response(False, message="Invalid path.", status=404)
         
@@ -243,6 +261,18 @@ class Handler:
         return response
 
 
+    def _handle_put_users(self, data):
+        if 'userName' not in data or 'plantId' not in data or 'password' not in data:
+            return create_response(False, message="Invalid input. 'plantId', 'userName' and 'password' are neccessary.", status=400)
+        try:
+            data["plantId"] = int(data["plantId"])
+        except ValueError as e:
+            return create_response(False, message=f"Plant ID must be a changeable to integer, not '{data["plantId"]}': {str(e)}", status=400)
+        
+        insertion_response = self.db.add_user(data)
+        return insertion_response
+
+
     def _handle_put_device_status(self, uri, data):
         try:
             device_id = int(uri[1])
@@ -269,8 +299,8 @@ class Handler:
         if normalized_uri[0] == 'devices':
             return self._handle_delete_devices(normalized_uri)
         
-        # elif normalized_uri[0] == 'users':
-        #     return self._handle_delete_users(normalized_uri, params)
+        elif normalized_uri[0] == 'users':
+            return self._handle_delete_users(normalized_uri, params)
         
         return create_response(False, message="Invalid path.", status=404)
 
@@ -293,6 +323,14 @@ class Handler:
         except ValueError as e:
             return create_response(False, message=f"Device ID must be a number, not '{uri[1]}': {str(e)}", status=400)
         return self.db.delete_device(device_id=device_id)
+
+    def _handle_delete_users(self, normalized_uri, params):
+        plant_id = params.get("plant_id")
+        telegram_id = params.get("telegram_id")
+        if not plant_id:
+            return create_response(False, message="No plant ID inserted.", status=400)
+        return self.db.delete_plant_from_user_inventory(int(plant_id), int(telegram_id))
+
 
 
 
