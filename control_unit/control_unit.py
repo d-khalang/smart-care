@@ -15,7 +15,7 @@ class MyClientMQTT():
     def __init__(self, clientID, broker, port, host, child_logger):
         self.host = host
         self.client = MyMQTT(clientID, broker, port, host, child_logger)
-        self.start()  
+
 
     ## Connecting to the broker
     def start(self):
@@ -34,15 +34,11 @@ class MyClientMQTT():
 
     def unsubscribe(self, topic):
         self.client.unsubscribe(topic)
-    
-    # # Will be triggered when a message is received
-    # def notify(self, topic, payload):
-    #     return self.host.notify(topic, payload)
 
 
 
 class Controler():
-    def __init__(self, config: Config, inital_rooms: List[int]):
+    def __init__(self, config: Config, inital_rooms: List[int]=Config.ROOM_IDS):
         self.config = config
         self.rooms = inital_rooms
         self.rooms_location = {}
@@ -89,7 +85,7 @@ class Controler():
         if from_main:
             # Schedule the next update if the method is not triggered by external requests
             threading.Timer(self.config.TOPICS_UPDATE_INTERVAL, lambda: self.update_sensors_location_and_subscriptions(from_main=True)).start()
-    
+
 
     def _set_rooms_location(self):
         self.logger.info("Updating the room locations...")
@@ -196,7 +192,7 @@ class Controler():
                 for sensor in sensors:
                     if sensor not in self.sensors:
                         self.sensors.append(sensor)
-                        self.logger.info(f"Sensor with ID {sensor.get("deviceId")} added.")
+                        self.logger.info(f"Sensor with ID {sensor.get('deviceId')} added.")
             
             self.logger.info("Sensors updated.")
 
@@ -341,7 +337,8 @@ class Controler():
                                         broker=self.broker,
                                         port=self.port,
                                         host=self,
-                                        child_logger=MyLogger.set_logger(logger_name=Config.MQTT_LOGGER))
+                                        child_logger=MyLogger.set_logger(logger_name=self.config.MQTT_LOGGER))
+        self.mqtt_client.start()
         
 
     def stop_mqtt(self):
@@ -448,7 +445,7 @@ class Controler():
         endpoint = self._discover_service("rooms", 'GET')
         try:
             if endpoint:    
-                url = f"{self.catalog_address}{endpoint}/{msg_info.get("room_id")}"
+                url = f"{self.catalog_address}{endpoint}/{msg_info.get('room_id')}"
             else:
                 self.logger.error(f"Failed to get rooms endpoint")
                 return
@@ -472,7 +469,7 @@ class Controler():
         endpoint = self._discover_service("rooms", 'GET')
         try:
             if endpoint:    
-                url = f"{self.catalog_address}{endpoint}/{msg_info.get("room_id")}"
+                url = f"{self.catalog_address}{endpoint}/{msg_info.get('room_id')}"
             else:
                 self.logger.error(f"Failed to get rooms endpoint")
                 return
@@ -531,7 +528,7 @@ class Controler():
         # Get corressponding plant kind
         plant_kind = self._get_plant_kind_for_room(msg_info)
         if not plant_kind:
-            self.logger.error(f"Faild to figure out plant kind for room {msg_info["room_id"]}")
+            self.logger.error(f"Faild to figure out plant kind for room {msg_info['room_id']}")
         
         # Getting the suitable temperature of the corresponding plant kind
         plant_kind_dict = self._get_plant_kind_info(plant_kind)
@@ -646,7 +643,7 @@ class Controler():
         # Get corressponding plant kind
         plant_kind = self._get_plant_kind_for_room(msg_info)
         if not plant_kind:
-            self.logger.error(f"Faild to figure out plant kind for room {msg_info["room_id"]}")
+            self.logger.error(f"Faild to figure out plant kind for room {msg_info['room_id']}")
         
         plant_kind_dict = self._get_plant_kind_info(plant_kind)
         if not plant_kind_dict:
@@ -742,7 +739,7 @@ class Controler():
         # Get corressponding plant kind
         plant_kind = self._get_plant_kind_for_room(msg_info)
         if not plant_kind:
-            self.logger.error(f"Faild to figure out plant kind for room {msg_info["room_id"]}")
+            self.logger.error(f"Faild to figure out plant kind for room {msg_info['room_id']}")
         
         plant_kind_dict = self._get_plant_kind_info(plant_kind)
         if not plant_kind_dict:
@@ -789,7 +786,7 @@ class Controler():
         # Get corressponding plant kind
         plant_kind = self._get_plant_kind_for_room(msg_info)
         if not plant_kind:
-            self.logger.error(f"Faild to figure out plant kind for room {msg_info["room_id"]}")
+            self.logger.error(f"Faild to figure out plant kind for room {msg_info['room_id']}")
         
         plant_kind_dict = self._get_plant_kind_info(plant_kind)
         if not plant_kind_dict:

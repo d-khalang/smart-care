@@ -31,9 +31,14 @@
         /* Header styles */
         .header-container {
             display: flex;
-            justify-content: space-between; /* Space between heading and button */
+            justify-content: space-between; /* Space between heading and buttons */
             align-items: center; /* Center items vertically */
             padding: 10px 0; /* Optional padding */
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px; /* Add spacing between buttons */
         }
 
         h2 {
@@ -48,7 +53,6 @@
             margin: 5px 0;
         }
         
-
         .data-chart {
             display: flex;
             flex-wrap: wrap; /* Allows cards to wrap to the next line */
@@ -63,6 +67,7 @@
             background-color: rgba(255, 255, 255, 0.8);
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
+
         .chart-card h3 {
             padding: 10px;
         }
@@ -144,7 +149,6 @@
             margin-bottom: 0;
         }
 
-        
         /* Media query for screens smaller than or equal to 600px */
         @media (max-width: 600px) {
             .chart-card {
@@ -152,7 +156,6 @@
                 margin: 5px 0; /* Adjust margin for better spacing */
             }
         }
-        
     </style>
     <script>
         function sendStatusMessage(deviceId, plantId, roomId, status) {
@@ -172,13 +175,32 @@
                 }
             });
         }
+
+        function getPlantReport(plantId) {
+            $.ajax({
+                type: "GET",
+                url: `/get_report/${plantId}`,
+                success: function(response) {
+                    $('#confirmationModal .modal-body').text(`Report for plant ${plantId} saved successfully.`);
+                    $('#confirmationModal').modal('show');
+                },
+                error: function(xhr, status, error) {
+                    $('#confirmationModal .modal-body').text(`Failed to get report for plant ${plantId}.`);
+                    $('#confirmationModal').modal('show');
+                    console.error(xhr.responseText);
+                }
+            });
+        }
     </script>
 </head>
 <body>
     <div class="container">
         <div class="header-container">
             <h2>Plant Details</h2>
-            <a href="http://127.0.0.1:5000/" class="button green">Back to Plants</a>
+            <div class="button-group">
+                <a id="get-report-button" class="button blue" href="{{ url_for('get_report', plant_id=plant.plantId) }}">Get Report</a>
+                <a href="http://127.0.0.1:5000/" class="button green">Back to Plants</a>
+            </div>
         </div> 
         <div class="plant-info">
             <p>Plant {{ plant.plantId }}</p>
@@ -227,7 +249,7 @@
                     </button>
                 </div>
                 <div class="modal-body">
-                    <!-- Message content will be inserted here -->
+                    <!-- Message will be inserted here dynamically -->
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>

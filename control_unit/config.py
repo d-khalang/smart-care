@@ -22,6 +22,7 @@ class Config:
     CU_PORT = int(os.getenv("CU_PORT"))
     WEATHER_FORECAST_URL = os.getenv("WEATHER_FORECAST_URL")
     WEATHER_FORECAST_API_KEY = os.getenv("WEATHER_FORECAST_API_KEY")
+    ROOM_IDS = list(map(int, os.getenv("ROOM_IDS", "").split(",")))
 
 
 

@@ -9,7 +9,7 @@ class MyClientMQTT():
     def __init__(self, clientID, broker, port, host, child_logger):
         self.host = host
         self.client = MyMQTT(clientID, broker, port, host, child_logger)
-        self.start()  
+
 
     ## Connecting to the broker
     def start(self):
@@ -44,24 +44,33 @@ class Adaptor():
         self.main_topic = ""
         self.sensors_by_room = {}
         self.channels_detail = {}
-        self.channel_API = self.config.CHANNEL_API
         self.user_API_key = self.config.USER_API_KEY
         self.available_measure_types = self.config.AVAILABLE_MEASURE_TYPES
 
         self.logger.info("Initiating the adaptor...")
         self.get_broker()
         self.initiate_mqtt()
+        self.post_service()
         self.get_topic_template()
         self.prepare_main_topic()
         self.subscribe_to_topic()
         self.update_and_sort_devices_by_room()
         self.check_and_create_channel()
+        # self.start_update_timer()
         print()
+
+
+    def start_update_timer(self):
+        # Ensure the timer starts only once
+        self.update_timer = threading.Timer(self.config.UPDATE_INTERVAL, self.update_and_sort_devices_by_room)
+        self.update_timer.daemon = True
+        self.update_timer.start()
 
 
     def check_and_create_channel(self):
         # Step 1: Send request to retrieve list of channels
-        url = self.config.CHANNELS_API.replace("{API_key}", self.user_API_key)
+        url = self.config.THINGSPEAK_URL + self.config.THINGSPEAK_CHANNELS_ENDPOINT + self.config.USER_API_KEY
+        # url = self.config.CHANNELS_API.replace("{API_key}", self.user_API_key)
         response = requests.get(url)
         channels = response.json()
 
@@ -115,22 +124,72 @@ class Adaptor():
                     self.logger.info(f"Failed to create channel {channel_name}: {e}")
 
 
+    # To get the channels and fields information for user interface
+    def get_channel_detail(self, room_id: str=None):
+        return self.channels_detail.get(room_id, self.channels_detail)
+
+
+    def get_sensing_data(self, room_id: str, results: int = 4, plant_id: str = None, start_date: str = None, end_date: str = None):
+        channel_detail = self.channels_detail.get(room_id)
+        if not room_id:
+            self.logger.error(f"No channel detail found for room ID: {room_id}")
+            return False
+
+        fields, the_channel_id = channel_detail["fields"], channel_detail['channelId']
+        params = {'results': results}
+        if start_date:
+            params['start'] = start_date
+        if end_date:
+            params['end'] = end_date
+
+        # requests thingSpeak for the last 5 data point to get the last value of each sensor
+        try:
+            # https://api.thingspeak.com/channels/<2425367>/feeds.json?results=4
+            url = f"{self.config.THINGSPEAK_URL}/channels/{str(the_channel_id)}/feeds.json"
+            req_g = requests.get(url, params=params)
+            # req_g = requests.get(f"{self.thingSpeak_channels_url}{str(the_channel_id)}/feeds.json?results=4")
+            self.logger.info(f"Get request of sensing data for room {room_id} with params {params}")
+
+            data_list = req_g.json().get("feeds", [])
+            current_data_dict = {field: [] for field in fields.values()}
+
+            for datumDict in data_list:
+                timestamp = datumDict.get("created_at")
+                for field, value in datumDict.items():
+                    if field.startswith("field") and value:
+                        if not plant_id:
+                            current_data_dict[fields[field]].append((value, timestamp))
+                        elif fields[field] not in ['temperature', 'light']:
+                            if fields[field].endswith(plant_id):
+                                current_data_dict[fields[field]].append((value, timestamp))
+                        else:
+                            current_data_dict[fields[field]].append((value, timestamp))
+            
+
+            # Remove empty lists from the dictionary
+            current_data_dict = {k: v for k, v in current_data_dict.items() if v}
+
+            return current_data_dict
+
+        except requests.exceptions.RequestException as e:
+            self.logger.error(f"Failed to get sensing data from ThingSpeak. Error: {e}")
+            return 
+        except KeyError as e:
+            self.logger.error(f"Key error: {e}")
+            return 
+
+
     def update_and_sort_devices_by_room(self):
         self._update_rooms()
         sensors_by_room = {}
 
         for room_id in self.rooms:
-            sensors = self._get_devices(device_type="sensor", room_id=room_id)
-            if not sensors:
-                sensors = []
-
+            sensors = self._get_devices(device_type="sensor", room_id=room_id) or []
             sensors_by_room[room_id] = sensors
-
         self.sensors_by_room = sensors_by_room
-        # Schedule the next update if the method is not triggered by external requests
-        t = threading.Timer(self.config.UPDATE_INTERVAL, self.update_and_sort_devices_by_room)
-        t.daemon = True
-        t.start()
+
+         # Schedule the next update if the method is not triggered by external requests
+        self.start_update_timer()
         
 
     def _update_rooms(self):
@@ -243,7 +302,8 @@ class Adaptor():
                                         broker=self.broker,
                                         port=self.port,
                                         host=self,
-                                        child_logger=MyLogger.set_logger(logger_name=Config.MQTT_LOGGER))
+                                        child_logger=MyLogger.set_logger(logger_name=self.config.MQTT_LOGGER))
+        self.mqtt_client.start()
 
 
     def _get_devices(self,
@@ -260,7 +320,7 @@ class Adaptor():
     }
         
         params = {k: v for k, v in local_vars.items() if v is not None}
-        endpoint = self._discover_service("devices", 'GET')
+        endpoint = self._discover_service(self.config.DEVICES_ENDPOINT, 'GET')
         try:
             if endpoint:    
                 url = f"{self.catalog_address}{endpoint}"
@@ -296,7 +356,7 @@ class Adaptor():
                 self.logger.error(f"Failed to get plant endpoint")
                 return
             
-            self.logger.info(f"Fetching sensors information from {url} with params: {params}")
+            self.logger.info(f"Fetching plants information from {url}.")
             response = requests.get(url)
             response.raise_for_status()
             plants_response = response.json()
@@ -310,7 +370,7 @@ class Adaptor():
             return []
             
         except requests.RequestException as e:
-            self.logger.error(f"Failed to fetch devices information: {e}")
+            self.logger.error(f"Failed to fetch plants information: {e}")
 
 
     def get_topic_template(self):
@@ -362,6 +422,31 @@ class Adaptor():
         self.mqtt_client.subscribe(topic=self.main_topic)
 
 
+    def post_service(self):
+        # Read the JSON file
+        try:
+            with open(self.config.SERVICE_REGISTRY_FILE, 'r') as file:
+                data = json.load(file)
+        except FileNotFoundError:
+            self.logger.error(f"Service registry file not found: {self.config.SERVICE_REGISTRY_FILE}")
+            return
+        except json.JSONDecodeError:
+            self.logger.error(f"Error decoding JSON from file: {self.config.SERVICE_REGISTRY_FILE}")
+            return
+
+        # Post the data to the registry system
+        url = f"{self.catalog_address}/{self.config.SERVICES_ENDPOINT}"
+        try:
+            response = requests.post(url, json=data)
+            response.raise_for_status()
+        except requests.exceptions.RequestException as e:
+            self.logger.error(f"Error posting service data: {str(e)}")
+        if response.json().get("success"): 
+            self.logger.info("Service registered successfully.")
+        else:
+            self.logger.error("Error registring the service.")
+
+
     # Triggered when a message recieved
     def notify(self, topic, payload):
         msg = json.loads(payload)
@@ -397,8 +482,16 @@ class Adaptor():
         # Writing on Thingspeak channel
         if field_available:
             try:
-                response = requests.get(self.channel_API+f"api_key={channel_API}&{channedlField}={str(event['v'])}")     
+                self.logger.debug(f"{self.config.THINGSPEAK_URL}\n{self.config.THINGSPEAK_UPDATE_ENDPOINT}\n&{channedlField}={str(event['v'])}")
+                url = self.config.THINGSPEAK_URL+self.config.THINGSPEAK_UPDATE_ENDPOINT+f"api_key={channel_API}"+f"&{channedlField}={str(event['v'])}"
+                response = requests.get(url)     
                 self.logger.info(f"{measure_type} on channel {channel_name} and {field} is writen on thinkspeak with code {response.text}\n")
             
             except (requests.exceptions.RequestException, UnboundLocalError) as e:
                 self.logger.error(f"Error during writing {sensor_name} on thinkspeak channel: {e}")
+
+
+# if __name__ == "__main__":
+#     adaptor = Adaptor(Config)
+#     adaptor.get_sensing_data('1', 20, '101')
+#     print()

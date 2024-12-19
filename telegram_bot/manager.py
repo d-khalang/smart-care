@@ -1,4 +1,6 @@
+import os
 import requests
+from datetime import date, datetime
 from typing import Literal
 from config import Config, MyLogger
 
@@ -31,8 +33,36 @@ class DataManager():
                 ownership_dict[plant_id] = plant_to_user_map[plant_id]
             else:
                 ownership_dict[plant_id] = {}
-        available_plants = [k for k,v in ownership_dict.items if v=={} ]
+        available_plants = [k for k,v in ownership_dict.items() if v=={} ]
         return ownership_dict, available_plants
+
+
+    def delete_plant_from_user_inventory(self, plant_id, user_id):
+        endpoint, host = self._discover_service_plus(self.config.USERS_ENDPOINT, 'DELETE')
+        params = {
+            "plant_id": int(plant_id),
+            "telegram_id": user_id
+        }
+        try:
+            if endpoint:    
+                url = f"{self.catalog_address}{endpoint}"
+            else:
+                self.logger.error(f"Failed to get users endpoint")
+                
+            self.logger.info(f"Removing req send to {url} with params: {params}")
+            response = requests.delete(url, params=params)
+            response.raise_for_status()
+            users_response = response.json()
+
+            if users_response.get("success"):
+                return True
+
+        except requests.RequestException as e:
+            self.logger.error(f"Failed to delete plant {plant_id} from user: {e}")
+            return
+        except Exception as e:
+            self.logger.error(f"Failed to delete plant {plant_id} from user: {e}")
+            return
 
 
     def post_user(self, plant_id, username, password, telegram_id):
@@ -63,6 +93,84 @@ class DataManager():
         except Exception as e:
             self.logger.error(f"Failed to post user: {e}")
             return
+
+
+    # Getting the age of the plant
+    def get_plant_age(self, plant_id):
+        plants = self._get_plant(plant_id)
+        if plants:
+            plant = plants[0]
+        else:
+            return 99
+        # 7 weeks to be ripe
+        
+        plante_date = plant["plantDate"]
+
+        today = date.today()
+
+        # Convert the format from string to date obj
+        the_date = datetime.strptime(plante_date, "%Y-%m-%d").date()
+
+        # Calculate the difference in days
+        difference = (today - the_date).days
+        days_until_ready = self.config.FULL_GROWING_TIME - difference
+
+        return days_until_ready if days_until_ready else 99
+
+
+    def show_actuators_status(self, plant_id):
+        room_id = int(self._get_room_for_plant(plant_id))
+        devices = self.get_devices_for_plant(room_id, int(plant_id))
+        status_dict = {device.get("deviceName"): device.get("deviceStatus") for device in devices}
+        return status_dict
+
+    def _get_devices(self,
+                    measure_type: str=None,
+                    device_type: str=None,
+                    plant_id: int=None,
+                    room_id: int=None,
+                    device_id: str=""):
+        
+        local_vars = {
+        'measure_type': measure_type,
+        'device_type': device_type,
+        'plant_id': plant_id,
+        'room_id': room_id
+    }
+        
+        params = {k: v for k, v in local_vars.items() if v is not None}
+        endpoint, host = self._discover_service_plus(self.config.DEVICES_ENDPOINT, 'GET')
+        try:
+            if endpoint:    
+                url = f"{self.catalog_address}{endpoint}"
+                if device_id:
+                    url += f"/{device_id}"
+            else:
+                self.logger.error(f"Failed to get devices endpoint")
+                return
+            
+            self.logger.info(f"Fetching sensors information from {url} with params: {params}")
+            response = requests.get(url, params)
+            response.raise_for_status()
+            devices_response = response.json()
+
+            if devices_response.get("success"):
+                devices_list = devices_response["content"]
+                if devices_list:
+                    return devices_list
+                
+            return []
+
+        except requests.RequestException as e:
+            self.logger.error(f"Failed to fetch devices information: {e}")
+
+
+    def get_devices_for_plant(self, room_id: int, plant_id: int): 
+        plant_devices = self._get_devices(room_id=room_id, plant_id=plant_id) 
+        temp_device = self._get_devices(measure_type="temperature", room_id=room_id)
+        ligh_device = self._get_devices(measure_type="light", room_id=room_id)
+
+        return plant_devices + temp_device + ligh_device
 
 
     def _get_user(self, user_name: str=None, plant_id: int=None, telegram_id: str=None):
@@ -198,6 +306,47 @@ class DataManager():
             return {}
 
 
+    def get_report(self, plant_id, results: int=100):
+        endpoint, host = self._discover_service_plus(item=self.config.REPORTER_ENDPOINT, 
+                                                    method='GET',
+                                                    microservice=self.config.REPORTER_REGISTRY_NAME)
+        try:
+            if endpoint and host:    
+                url = f"{host}{endpoint}/{plant_id}"
+                req = requests.get(url=url, params={"results": results}, headers={"Accept": "application/pdf"})
+                req.raise_for_status()
+                
+                # Ensure the directory exists
+                if not os.path.exists(self.config.REPORT_SAVE_PATH):
+                    os.makedirs(self.config.REPORT_SAVE_PATH)
+                
+                # Ensure REPORT_SAVE_PATH points to a file
+                base_file_name = f"report_{plant_id}.pdf"
+                save_path = os.path.join(self.config.REPORT_SAVE_PATH, base_file_name)
+
+                # Check if file with same name exists and modify the name slightly if it does
+                if os.path.exists(save_path):
+                    base_name, extension = os.path.splitext(base_file_name)
+                    counter = 1
+                    while os.path.exists(save_path):
+                        new_file_name = f"{base_name}_{counter}{extension}"
+                        save_path = os.path.join(self.config.REPORT_SAVE_PATH, new_file_name)
+                        counter += 1
+
+                with open(save_path, 'wb') as file:
+                    file.write(req.content)
+                    self.logger.info(f"Report received for plant {plant_id}, saved as {save_path}")
+                    return save_path
+                    
+            else:
+                self.logger.error(f"Failed to get the report endpoint")
+                return 
+            
+        except requests.RequestException as e:
+            self.logger.error(f"Failed to fetch the report: {e}")
+            return 
+        
+
 
     def _discover_service_plus(self, item: str, method: Literal['GET', 'POST', 'PUT', 'DELETE'], sub_path: str=None, microservice: str=Config.SERVICE_REGISTRY_NAME):
         # Return the endpoint from the cache
@@ -237,3 +386,10 @@ class DataManager():
 
         except requests.RequestException as e:
             self.logger.error(f"Failed to fetch services endpoint: {e}")
+
+
+if __name__ == "__main__":
+    manager = DataManager(Config)
+    # data = manager.get_sensing_data(101, results=1)
+    data = manager.get_report(101)
+    print(data)

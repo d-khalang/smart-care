@@ -9,6 +9,14 @@
             "lastUpdated": "2024-03-14 12:41:45"
         },
         {
+            "plantId": 102,
+            "roomId": 1,
+            "plantKind": "Lettuce",
+            "plantDate": "2024-11-28",
+            "deviceInventory": [],
+            "lastUpdated": ""
+        },
+        {
             "plantId": 201,
             "roomId": 2,
             "plantKind": "Lettuce",
@@ -277,6 +285,34 @@
             ]
         },
         {
+            "deviceId": 10203,
+            "deviceType": "sensor", 
+            "deviceName": "soilMoisturesen",
+            "deviceStatus": "ON",
+            "statusOptions": [
+                "DISABLE",
+                "ON"
+            ],
+            "deviceLocation": {
+                "plantId": 102,
+                "roomId": 1
+            },
+            "measureTypes": [
+                "soil_moisture"
+            ],
+            "availableServices": [
+                "MQTT"
+            ],
+            "servicesDetails": [
+                {
+                    "serviceType": "MQTT",
+                    "topic": [
+                        "SC4SS/sensor/1/102/soil_moisture"
+                    ]
+                }
+            ]
+        },
+        {
             "deviceId": 20009,
             "deviceType": "sensor", 
             "deviceName": "tempsen",
@@ -328,7 +364,7 @@
                 {
                     "serviceType": "MQTT",
                     "topic": [
-                        "SC4SS/actuator/2/000/temperature"
+                        "SC4SS/actuator/2/000/heater_switch"
                     ]
                 }
             ]

@@ -16,7 +16,7 @@ class MyClientMQTT():
     def __init__(self, clientID, broker, port, host, child_logger):
         self.host = host
         self.client = MyMQTT(clientID, broker, port, host, child_logger)
-        self.start()  
+
 
     ## Connecting to the broker
     def start(self):
@@ -32,10 +32,9 @@ class MyClientMQTT():
     # Add the topic to the subscribed topics not substitude
     def subscribe(self, topic):
         self.client.mySubscribe(topic)
-    
-    # # Will be triggered when a message is received
-    # def notify(self, topic, payload):
-    #     self.host.notify(topic, payload)
+
+    def unsubscribe(self, topic):
+        self.client.unsubscribe(topic)
 
 
 
@@ -112,7 +111,8 @@ class DeviceConnector:
                                         broker=self.broker,
                                         port=self.port,
                                         host=self,
-                                        child_logger=MyLogger.set_logger(logger_name=Config.MQTT_LOGGER))
+                                        child_logger=MyLogger.set_logger(logger_name=self.config.MQTT_LOGGER))
+        self.mqtt_client.start()
     
 
     def stop_mqtt(self):
@@ -397,7 +397,7 @@ class DeviceConnector:
         event = msg["e"][0]
         print(f"{topic} measured a {event['n']} of {event['v']} {event['u']} at time {event['t']}")
 
-        #TODO:change the status of device in catalog
+        # Change the status of device in catalog
         msg_info = {}
         splitted_topic = topic.split("/")
         try:
@@ -407,6 +407,10 @@ class DeviceConnector:
             self.logger.warning(f"Unrecognized topic detected: {str(e)}.")
             return
 
+        if event['v'] not in ["OFF", "ON", "LOW", "HIGH", "MID"]:
+            self.logger.info("Detected status is temporal. No registration on catalog.")
+            return
+        
         msg_info["value"] = event['v']
 
         for device in self.devices:
@@ -429,15 +433,17 @@ class DeviceConnector:
 
 if __name__ == "__main__":
     dc = DeviceConnector(config=Config)
-    
+    flag = True
     try:
-        while True:
+        while flag:
             time.sleep(5)
             print("......")
 
     except KeyboardInterrupt:
+        
         print("Keyboard interrupt detected. Shutting down...")
         dc.stop_mqtt()
+        flag = False
         
     finally:
         dc.stop_mqtt()

@@ -31,7 +31,7 @@ class MyMQTT:
         try:
             self._paho_mqtt.publish(topic, json.dumps(msg), qos=2)
         except Exception as e:
-            self.logger.info(f"Error publishing message: {e}")
+            self.logger.error(f"Error publishing message: {e}")
 
 
     def mySubscribe(self, topic):

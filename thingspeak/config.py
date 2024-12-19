@@ -14,13 +14,18 @@ class Config:
     SERVICE_REGISTRY_NAME = os.getenv("SERVICE_REGISTRY_NAME")
     MQTT_CLIENT_ID = os.getenv("MQTT_CLIENT_ID")
     LOGGER_NAME = os.getenv("BASE_LOGGER")
-    # MODEL_LOGGER = os.getenv("MODEL_LOGGER")
+    SERVICE_REGISTRY_FILE = os.getenv("SERVICE_REGISTRY_FILE")
     AVAILABLE_MEASURE_TYPES = os.getenv("AVAILABLE_MEASURE_TYPES", "").split(",")
     MQTT_LOGGER = os.getenv("MQTT_LOGGER")
     UPDATE_INTERVAL = int(os.getenv("TOPICS_UPDATE_INTERVAL", 600))  # seconds
-    CU_PORT = int(os.getenv("CU_PORT"))
+    # CU_PORT = int(os.getenv("CU_PORT"))
     CHANNEL_API = os.getenv("CHANNEL_API")
     CHANNELS_API = os.getenv("CHANNELS_API")
+    ADAPTOR_PORT = int(os.getenv("ADAPTOR_PORT"))
+
+    THINGSPEAK_URL = os.getenv("THINGSPEAK_URL")
+    THINGSPEAK_UPDATE_ENDPOINT = os.getenv("THINGSPEAK_UPDATE_ENDPOINT")
+    THINGSPEAK_CHANNELS_ENDPOINT = os.getenv("THINGSPEAK_CHANNELS_ENDPOINT")
     USER_API_KEY = os.getenv("USER_API_KEY")
 
 

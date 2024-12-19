@@ -20,8 +20,11 @@ class Config:
     LOGGER_NAME = os.getenv("BASE_LOGGER")
     SERVICE_REGISTRY_FILE = os.getenv("SERVICE_REGISTRY_FILE")
     AVAILABLE_MEASURE_TYPES = os.getenv("AVAILABLE_MEASURE_TYPES", "").split(",")
-    REPORTER_PORT = int(os.getenv("REPORTER_PORT"))
+    REPORTER_REGISTRY_NAME = os.getenv("REPORTER_REGISTRY_NAME")
+    REPORTER_ENDPOINT = os.getenv("REPORTER_ENDPOINT")
     BOT_TOKEN = os.getenv("BOT_TOKEN")
+    FULL_GROWING_TIME = int(os.getenv("FULL_GROWING_TIME"))
+    REPORT_SAVE_PATH = os.getenv("REPORT_SAVE_PATH")
 
     
 

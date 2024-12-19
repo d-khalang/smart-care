@@ -1,3 +1,4 @@
+import os
 import requests
 import time
 from typing import Literal
@@ -9,8 +10,7 @@ class MyClientMQTT():
     def __init__(self, clientID, broker, port, host, child_logger):
         self.host = host
         self.client = MyMQTT(clientID, broker, port, host, child_logger)
-        self.start()
-        
+
 
     ## Connecting to the broker
     def start(self):
@@ -78,7 +78,7 @@ class DataManager():
     # Post the satatus of the device to the operator control
     def post_device_status(self, device_detail: dict):
         self.initiate_mqtt()
-        time.sleep(1)
+        time.sleep(0.5)
         devices = self._get_devices(device_id=device_detail.get("deviceId"))
         if not devices:
             self.logger.error(f"No device detected for device status request with detail: {str(device_detail)}")
@@ -100,7 +100,8 @@ class DataManager():
         }
         self.logger.debug(f"topic: {topic}, msg: {msg}")
         self.mqtt_client.publish(topic, msg)
-        time.sleep(1)
+        time.sleep(0.5)
+        self.stop_mqtt()
 
 
 
@@ -194,6 +195,7 @@ class DataManager():
                                         port=self.port,
                                         host=None,
                                         child_logger=MyLogger.set_logger(logger_name=Config.MQTT_LOGGER))
+        self.mqtt_client.start()
 
 
     def stop_mqtt(self):
@@ -269,6 +271,81 @@ class DataManager():
         except ValueError as e:
             self.logger.error(f"Invalid broker information received: {e}")
 
+
+    def get_report(self, plant_id, results: int=100):
+        endpoint, host = self._discover_service_plus(item=self.config.REPORTER_ENDPOINT, 
+                                                    method='GET',
+                                                    microservice=self.config.REPORTER_REGISTRY_NAME)
+        try:
+            if endpoint and host:    
+                url = f"{host}{endpoint}/{plant_id}"
+                req = requests.get(url=url, params={"results": results}, headers={"Accept": "application/pdf"})
+                req.raise_for_status()
+                
+                # Ensure the directory exists
+                if not os.path.exists(self.config.REPORT_SAVE_PATH):
+                    os.makedirs(self.config.REPORT_SAVE_PATH)
+                
+                # Ensure REPORT_SAVE_PATH points to a file
+                base_file_name = f"report_{plant_id}.pdf"
+                save_path = os.path.join(self.config.REPORT_SAVE_PATH, base_file_name)
+
+                # Check if file with same name exists and modify the name slightly if it does
+                if os.path.exists(save_path):
+                    base_name, extension = os.path.splitext(base_file_name)
+                    counter = 1
+                    while os.path.exists(save_path):
+                        new_file_name = f"{base_name}_{counter}{extension}"
+                        save_path = os.path.join(self.config.REPORT_SAVE_PATH, new_file_name)
+                        counter += 1
+
+                with open(save_path, 'wb') as file:
+                    file.write(req.content)
+                    self.logger.info(f"Report received for plant {plant_id}, saved as {save_path}")
+                    return save_path
+                    
+            else:
+                self.logger.error(f"Failed to get the report endpoint")
+                return 
+            
+        except requests.RequestException as e:
+            self.logger.error(f"Failed to fetch the report: {e}")
+            return 
+
+
+    def authenticate_user(self, plant_id, username, password):
+        self.logger.info(f"Username: {username} and password: {password} inserted!")
+        if username == Config.ADMIN_USERNAME and password == Config.ADMIN_PASSWORD:
+            return True
+        endpoint, host = self._discover_service_plus(self.config.USERS_ENDPOINT, 'GET')
+        params = {'plant_id': plant_id}
+        try:
+            if endpoint:    
+                url = f"{self.catalog_address}{endpoint}"
+            else:
+                self.logger.error(f"Failed to get users endpoint")
+                return
+            
+            self.logger.info(f"Fetching users from {url} with params: {params}")
+            response = requests.get(url, params)
+            response.raise_for_status()
+            response = response.json()
+
+            if response.get("success"):
+                users_list = response["content"]
+                if users_list:
+                    user_data = users_list[0]
+                    self.logger.info(f"User data received for authentication: {user_data}")
+                    authentication = username in [user_data.get('userName', ""), Config.ADMIN_USERNAME] \
+                    and str(password) in [user_data.get('password', ""), Config.ADMIN_PASSWORD]
+
+                    self.logger.info(f"Authentication was {authentication}!")
+                    return authentication
+            return False
+
+        except requests.RequestException as e:
+            self.logger.error(f"Failed to fetch users information: {e}")
+            return False
 
 
 # if __name__ == "__main__":

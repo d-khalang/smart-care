@@ -1,4 +1,4 @@
-'''Environmental variables provider'''
+'''Environmental variables & logger provider'''
 import os
 import logging
 from dotenv import load_dotenv
@@ -8,22 +8,28 @@ load_dotenv()
 class Config:
     CATALOG_URL = os.getenv("CATALOG_URL")
     PLANTS_ENDPOINT = os.getenv("PLANTS_ENDPOINT")
-    ROOMS_ENDPOINT = os.getenv("ROOMS_ENDPOINT")
     DEVICES_ENDPOINT = os.getenv("DEVICES_ENDPOINT")
     GENERAL_ENDPOINT = os.getenv("GENERAL_ENDPOINT")
+    ROOMS_ENDPOINT = os.getenv("ROOMS_ENDPOINT")
     SERVICES_ENDPOINT = os.getenv("SERVICES_ENDPOINT")
     SERVICE_REGISTRY_NAME = os.getenv("SERVICE_REGISTRY_NAME")
-    THINGSPEAK_ADAPTOR_REGISTRY_NAME = os.getenv("THINGSPEAK_ADAPTOR_REGISTRY_NAME")
-    ADAPTOR_SENSING_DATA_ENDPOINT = os.getenv("ADAPTOR_SENSING_DATA_ENDPOINT")
-    DATA_MANAGER_LOGGER = os.getenv("DATA_MANAGER_LOGGER")
-    LOGGER_NAME = os.getenv("BASE_LOGGER")
-    SERVICE_REGISTRY_FILE = os.getenv("SERVICE_REGISTRY_FILE")
-    AVAILABLE_MEASURE_TYPES = os.getenv("AVAILABLE_MEASURE_TYPES", "").split(",")
-    REPORTER_PORT = int(os.getenv("REPORTER_PORT"))
-    LLM_API_KEY = os.getenv("LLM_API_KEY")
-    LLM_MODEL = os.getenv("LLM_MODEL")
     
+    LOGGER_NAME = os.getenv("BASE_LOGGER")
+    # MODEL_LOGGER = os.getenv("MODEL_LOGGER")
+    
+    
+    CONTROLLER_CONFIG_INTERVAL = int(os.getenv("CONTROLLER_CONFIG_INTERVAL", 300))  # seconds
+    CONTROLLER_BASE_PORT = int(os.getenv("CONTROLLER_BASE_PORT", 7090))
+    ROOMS_PER_CONTROLLER = int(os.getenv("ROOMS_PER_CONTROLLER", 2))
+    CONTROLLER_IMAGE = os.getenv("CONTROLLER_IMAGE")
+    # WEATHER_FORECAST_API_KEY = os.getenv("WEATHER_FORECAST_API_KEY")
 
+    CU_LOGGER = os.getenv("CU_LOGGER")
+    MQTT_LOGGER = os.getenv("MQTT_LOGGER")
+    TOPICS_UPDATE_INTERVAL = int(os.getenv("TOPICS_UPDATE_INTERVAL", 600))  # seconds
+    
+    WEATHER_FORECAST_URL = os.getenv("WEATHER_FORECAST_URL")
+    WEATHER_FORECAST_API_KEY = os.getenv("WEATHER_FORECAST_API_KEY")
 
 
 

@@ -1,7 +1,7 @@
 import cherrypy
 import time
 from adaptor import Adaptor
-from utility import create_response, case_insensitive
+from utility import create_response
 from config import Config
 
 
@@ -15,59 +15,30 @@ class WebAdaptor():
     def GET(self, *uri, **params):
         print({"uri":uri, "param":params})
         if len(uri) < 1:
-            return create_response(False, message="No url inserted, try 'channels'")
-        return create_response(False, message="No url inserted, try 'channels'")
-
-    # @cherrypy.tools.json_out()
-    # @cherrypy.tools.json_in()
-    # def POST(self, *uri, **params):
-    #     ### Must receive rooms in body like {"rooms": [1, 2, 3]}
-    #     data = cherrypy.request.json
-    #     if len(uri) < 1:
-    #         return create_response(False, message="No url inserted, try 'rooms'", status=404)
+            return create_response(False, message="No url inserted, try 'channel_detail'", status=404)
         
-    #     if case_insensitive(uri[0]) == 'rooms':
-    #         rooms = data.get('rooms')
-    #         if rooms:
-    #             try:
-    #                 checked_rooms = [int(room) for room in rooms]
-    #                 return self.adaptor.add_rooms(new_rooms=checked_rooms)
-
-    #             except ValueError as e:
-    #                 return create_response(False, message=f"All room IDs must be numbers, not '{rooms}': {str(e)}", status=500)
+        if uri[0] == "channel_detail":
+            if len(uri) > 1:
+                output = self.adaptor.get_channel_detail(uri[1]) 
+            else: 
+                output = self.adaptor.get_channel_detail()
             
-    #         return create_response(False, message="Rooms not present in the body.", status=404)
-    #     return create_response(False, message="No valid url inserted, try 'rooms'", status=404)
-    
-
-    # @cherrypy.tools.json_out()
-    # @cherrypy.tools.json_in()
-    # def PUT(self, *uri, **params):
-    #     return create_response(False, message="No put request is foreseen.")
+            if output:
+                return create_response(True, content=output, status=200)
+            else: 
+                return create_response(False, message="No cahnnel_detail or valid channel_id", status=400)
         
+        elif uri[0] == "sensing_data":
+            if len(uri) < 2:
+                return create_response(False, message="Enter channel_id.", status=404)
+            
+            data = self.adaptor.get_sensing_data(uri[1], **params)
+            if not data:
+                return create_response(False, message=f"No sensing data found for channel_id: {uri[1]} and params: {params}", status=400)
+            
+            return create_response(True, content=data, status=200)
 
-    # @cherrypy.tools.json_out()
-    # @cherrypy.tools.json_in()
-    # def DELETE(self, *uri, **params):
-    #     ### Must receive rooms in path like /rooms/1,2,3"
-    #     if len(uri) < 1:
-    #         return create_response(False, message="No url inserted, try 'rooms'", status=404)
-        
-    #     if case_insensitive(uri[0]) == 'rooms':
-    #         if len(uri) > 1:
-    #             rooms = uri[1]
-
-    #             try:
-    #                 rooms_str = rooms.strip().split(',')
-    #                 checked_rooms = [int(room) for room in rooms_str]
-    #                 return self.adaptor.remove_rooms(removed_rooms=checked_rooms)
-
-    #             except ValueError:
-    #                 return create_response(False, message="Invalid room IDs provided, must be integers", status=500)
-
-    #         return create_response(False, message="Unrecognizeable room IDs provided, must be set of numbers separated by ','.", status=500)
-    #     return create_response(False, message="No url inserted, try 'rooms'", status=404)
-
+        return create_response(False, message="URL not valid, try 'channels'", status=404)
 
 
 
@@ -80,21 +51,23 @@ if __name__ == "__main__":
             'tools.sessions.on': True
         }
     }
-    cherrypy.config.update({'server.socket_port': Config.CU_PORT})
+    cherrypy.config.update({'server.socket_port': Config.ADAPTOR_PORT})
 
-    webService = WebAdaptor(adaptor=Adaptor)
+    webService = WebAdaptor(adaptor=adaptor)
     cherrypy.tree.mount(webService, '/', conf)
     cherrypy.engine.start()
-    try:
-        while True:
-            time.sleep(1)
+    while True:
+        try:
+            
+            time.sleep(10)
 
-    except KeyboardInterrupt:
-        print("Keyboard interrupt detected. Shutting down...")
-        # Terminate the webservice    
-        cherrypy.engine.block()
-        
-    finally:
-        # Terminate the webservice 
-        adaptor.stop_mqtt()   
-        cherrypy.engine.block()
+        except KeyboardInterrupt:
+            print("Keyboard interrupt detected. Shutting down...")
+            # Terminate the webservice    
+            adaptor.stop_mqtt()  
+            cherrypy.engine.block()
+            
+        finally:
+            # Terminate the webservice 
+            adaptor.stop_mqtt()   
+            cherrypy.engine.block()
