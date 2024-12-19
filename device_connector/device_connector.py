@@ -450,11 +450,3 @@ if __name__ == "__main__":
         
         # dc.collect_and_average_sensor_data()
 
-    # t = 1
-    # while t < 600:
-    #     if t % Config.REGISTERATION_INTERVAL == 0:
-    #         dc.register()
-    #     if t % Config.DATA_GENERATION_INTERVAL ==
-
-    #     time.sleep(1)
-    #     t+=1
