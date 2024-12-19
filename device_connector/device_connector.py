@@ -147,8 +147,6 @@ class DeviceConnector:
 
                     except ValueError as e:
                         self.logger.error(f"Error creating sensor for device {device.device_id} with type {measure_type}: {e}")
-                
-                
         self.logger.debug(f"Created sensors: {self.available_sensors}")
 
 

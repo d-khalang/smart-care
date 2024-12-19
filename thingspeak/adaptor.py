@@ -105,8 +105,8 @@ class Adaptor():
 
             else:
                 # Step 3: Create the channel
-                create_channel_url = self.config.CHANNELS_API.split("?")[0]
-                create_channel_payload = {"api_key": self.user_API_key, "name": channel_name, "public_flag":"true"}
+                create_channel_url = self.config.THINGSPEAK_URL + self.config.THINGSPEAK_CHANNELS_ENDPOINT.rstrip("?")
+                create_channel_payload = {"api_key": self.user_API_key.split("=")[1], "name": channel_name, "public_flag":"true"}
 
                 # Creating the fields of the channel
                 for fieldID, fieldName in field_names_dict.items():

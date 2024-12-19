@@ -192,21 +192,39 @@ class Database:
             return create_response(False, message=str(e), status=500)
 
 
-    ### TODO: check and add finding service and add post/put confilict to handeler
     def add_service(self, data: dict) -> dict:
         name = data.get("name")
+        if not name:
+            return create_response(False, message="Service name is required.", status=400)
+
         try:
-            self.services_collection.update_one(
-                {"name":name},
-                {"$set": data},
-                upsert=True,
-            )
-            return create_response(True, message=f"Service {name} registered.", status=200)
-        
+            # Check if the service already exists
+            existing_service = self.services_collection.find_one({"name": name}, self.defult_projection)
+            
+            if existing_service:
+                self.child_logger.info(f"Service {name} already exists. Updating details.")
+                update_result = self.services_collection.update_one(
+                    {"name": name},
+                    {"$set": data}
+                )
+                if update_result.modified_count > 0:
+                    return create_response(True, message=f"Service {name} updated successfully.", status=200)
+                return create_response(True, message=f"No changes made to service {name}.", status=200)
+            
+            # If service does not exist, add it
+            insert_result = self.services_collection.insert_one(data)
+            if insert_result.inserted_id:
+                self.child_logger.info(f"Service {name} added successfully.")
+                return create_response(True, message=f"Service {name} registered successfully.", status=201)
+
+            # Fallback in case insertion fails unexpectedly
+            self.child_logger.error(f"Failed to register service {name} for unknown reasons.")
+            return create_response(False, message=f"Failed to register service {name}.", status=500)
+
         except PyMongoError as e:
             self.child_logger.error(f"Error updating services: {str(e)}")
             return create_response(False, message=str(e), status=500)
-        
+            
 
     def add_user(self, data: dict) -> dict:
         user_name = data["userName"]
@@ -370,6 +388,21 @@ class Database:
         except PyMongoError as e:
             self.child_logger.error(f"Error deleting plant ID {plant_id} from plantInventory: {str(e)}")
             return create_response(False, message=str(e), status=500)
+
+    def delete_service(self, name: str) -> dict:
+        if not name:
+            return create_response(False, message="Service name is required.", status=400)
+        try:
+            result = self.services_collection.delete_one({"name": name})
+            if result.deleted_count == 0:
+                self.child_logger.info(f"Service {name} not found for deletion.")
+                return create_response(False, message=f"Service {name} not found.", status=404)
+            self.child_logger.info(f"Service {name} deleted successfully.")
+            return create_response(True, message=f"Service {name} deleted successfully.", status=200)
+        except PyMongoError as e:
+            self.child_logger.error(f"Error deleting service {name}: {str(e)}")
+            return create_response(False, message=str(e), status=500)
+
 
 
 if __name__ == "__main__":

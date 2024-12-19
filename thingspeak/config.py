@@ -19,8 +19,8 @@ class Config:
     MQTT_LOGGER = os.getenv("MQTT_LOGGER")
     UPDATE_INTERVAL = int(os.getenv("TOPICS_UPDATE_INTERVAL", 600))  # seconds
     # CU_PORT = int(os.getenv("CU_PORT"))
-    CHANNEL_API = os.getenv("CHANNEL_API")
-    CHANNELS_API = os.getenv("CHANNELS_API")
+    # CHANNEL_API = os.getenv("CHANNEL_API")
+    # CHANNELS_API = os.getenv("CHANNELS_API")
     ADAPTOR_PORT = int(os.getenv("ADAPTOR_PORT"))
 
     THINGSPEAK_URL = os.getenv("THINGSPEAK_URL")

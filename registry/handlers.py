@@ -42,7 +42,6 @@ class Handler:
 
     def _handle_get_rooms(self, uri, params):
         room_id = None
-            
         if len(uri) > 1:
             try:
                 room_id = int(uri[1])
@@ -57,30 +56,6 @@ class Handler:
             service_name = uri[1]
         
         return self.db.find_services(service_name)
-    
-
-    def _handle_post_service(self, data):
-        if 'name' not in data or 'endpoints' not in data or 'host' not in data:
-            return create_response(False, message="Invalid input.", status=400)
-        service = self.db.add_service(data)
-        return service
-
-    def _handle_put_service(self, data):
-        if 'name' not in data or 'endpoints' not in data or 'host' not in data:
-            return create_response(False, message="Invalid input.", status=400)
-        service = self.db.add_service(data)
-        return create_response(True, data=service, status=201)
-
-    def _handle_delete_service(self, uri):
-        if len(uri) < 2:
-            return create_response(False, message="Service name not specified.", status=400)
-        # service_name = uri[1]
-        # result = self.db.delete_service(service_name)
-        # if result:
-        #     return create_response(True, message="Service deregistered successfully.")
-        return create_response(False, message="Service not found.", status=404)
-
-
 
     def _handle_get_general(self, uri):
         if len(uri) < 2:
@@ -93,7 +68,6 @@ class Handler:
         
         return create_response(False, message="Invalid general subpath.", status=404)
     
-
     def _handle_get_plants(self, uri, params):    
         plant_id = None
         no_detail = convert_to_bool(params.get("no_detail"))
@@ -106,12 +80,10 @@ class Handler:
                 
         return self.db.find_plants(plant_id=plant_id, no_detail=no_detail)    
     
-
     def _handle_get_plant_kinds(self, uri, params):    
         kind_name = uri[1] if len(uri) > 1 else None
         no_detail = convert_to_bool(params.get("no_detail"))
         return self.db.find_plant_kinds(kind_name=kind_name, no_detail=no_detail)
-
 
     def _handle_get_devices(self, uri, params):
         device_id = None
@@ -126,7 +98,6 @@ class Handler:
         except ValidationError as e:
             return create_response(False, message=f"Invalid parameters: {e}", status=400)
         return self.db.find_devices(device_params, device_id=device_id)
-
 
     def _handle_get_users(self, normalized_uri, params):
         plant_id = params.get("plant_id")
@@ -146,10 +117,6 @@ class Handler:
 
         if normalized_uri[0] == 'plants':
             return self._handle_post_plants(data)
-        
-        #TODO
-        # elif normalized_uri[0] == 'plant_kinds':
-        #     return self._handle_post_plant_kinds(normalized_uri, params)
         
         elif normalized_uri[0] == 'devices':
             return self._handle_post_devices(data)
@@ -204,15 +171,19 @@ class Handler:
         insertion_response = self.db.add_user(data)
         return insertion_response
 
+    def _handle_post_service(self, data):
+        if 'name' not in data or 'endpoints' not in data or 'host' not in data:
+            return create_response(False, message="Invalid input.", status=400)
+        service = self.db.add_service(data)
+        return service
+    
+
+
     def handle_put(self, uri, params, data):
         normalized_uri = self._uri_normalizer(uri)
 
         if normalized_uri[0] == 'plants':
             return self._handle_put_plants(data)
-        
-        #TODO
-        # elif normalized_uri[0] == 'plant_kinds':
-        #     return self._handle_put_plant_kinds(normalized_uri, params)
         
         elif normalized_uri[0] == 'devices':
             if len(normalized_uri) > 2:
@@ -228,7 +199,6 @@ class Handler:
         
         return create_response(False, message="Invalid path.", status=404)
         
-
     def _handle_put_plants(self, data):
         try:
             plant = Plant(**data)
@@ -244,7 +214,6 @@ class Handler:
             response.update({"status":201}) if response.get("success") else response
         return response
             
-
     def _handle_put_devices(self, data):
         try:
             device = Device(**data)
@@ -260,7 +229,6 @@ class Handler:
             response.update({"status":201}) if response.get("success") else response
         return response
 
-
     def _handle_put_users(self, data):
         if 'userName' not in data or 'plantId' not in data or 'password' not in data:
             return create_response(False, message="Invalid input. 'plantId', 'userName' and 'password' are neccessary.", status=400)
@@ -271,7 +239,6 @@ class Handler:
         
         insertion_response = self.db.add_user(data)
         return insertion_response
-
 
     def _handle_put_device_status(self, uri, data):
         try:
@@ -285,16 +252,18 @@ class Handler:
             return self.db.update_device_status(device_id=device_id, status=status)
         return create_response(False, message=f"No status present in the body.", status=500)
 
+    def _handle_put_service(self, data):
+            if 'name' not in data or 'endpoints' not in data or 'host' not in data:
+                return create_response(False, message="Invalid input.", status=400)
+            service = self.db.add_service(data)
+            return service
+
 
     def handle_delete(self, uri, params):
         normalized_uri = self._uri_normalizer(uri)
 
         if normalized_uri[0] == 'plants':
             return self._handle_delete_plants(normalized_uri)
-        
-        #TODO
-        # elif normalized_uri[0] == 'plant_kinds':
-        #     return self._handle_delete_plant_kinds(normalized_uri, params)
         
         if normalized_uri[0] == 'devices':
             return self._handle_delete_devices(normalized_uri)
@@ -331,6 +300,10 @@ class Handler:
             return create_response(False, message="No plant ID inserted.", status=400)
         return self.db.delete_plant_from_user_inventory(int(plant_id), int(telegram_id))
 
-
+    def _handle_delete_service(self, uri):
+        if len(uri) < 2:
+            return create_response(False, message="Service name not specified.", status=400)
+        service_name = uri[1]
+        return self.db.delete_service(service_name)
 
 
