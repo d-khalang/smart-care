@@ -20,8 +20,10 @@ class Config:
     SERVICE_REGISTRY_FILE = os.getenv("SERVICE_REGISTRY_FILE")
     AVAILABLE_MEASURE_TYPES = os.getenv("AVAILABLE_MEASURE_TYPES", "").split(",")
     REPORTER_PORT = int(os.getenv("REPORTER_PORT"))
-    LLM_API_KEY = os.getenv("LLM_API_KEY")
-    LLM_MODEL = os.getenv("LLM_MODEL")
+    SERVICE_REGISTRY_FILE = os.getenv("SERVICE_REGISTRY_FILE")
+    SERVICE_REGISTERATION_INTERVAL = int(os.getenv("SERVICE_REGISTERATION_INTERVAL"))
+    # LLM_API_KEY = os.getenv("LLM_API_KEY")
+    # LLM_MODEL = os.getenv("LLM_MODEL")
     
 
 

@@ -15,13 +15,12 @@ class Config:
     SERVICE_REGISTRY_NAME = os.getenv("SERVICE_REGISTRY_NAME")
     MQTT_CLIENT_ID = os.getenv("MQTT_CLIENT_ID")
     LOGGER_NAME = os.getenv("BASE_LOGGER")
-    # MODEL_LOGGER = os.getenv("MODEL_LOGGER")
     ROOMS_ENDPOINT = os.getenv("ROOMS_ENDPOINT")
     MQTT_LOGGER = os.getenv("MQTT_LOGGER")
     TOPICS_UPDATE_INTERVAL = int(os.getenv("TOPICS_UPDATE_INTERVAL", 200))  # seconds
     CU_PORT = int(os.getenv("CU_PORT"))
-    WEATHER_FORECAST_URL = os.getenv("WEATHER_FORECAST_URL")
-    WEATHER_FORECAST_API_KEY = os.getenv("WEATHER_FORECAST_API_KEY")
+    # WEATHER_FORECAST_URL = os.getenv("WEATHER_FORECAST_URL")
+    # WEATHER_FORECAST_API_KEY = os.getenv("WEATHER_FORECAST_API_KEY")
     ROOM_IDS = list(map(int, os.getenv("ROOM_IDS", "").split(",")))
 
 
