@@ -56,18 +56,18 @@ if __name__ == "__main__":
     webService = WebAdaptor(adaptor=adaptor)
     cherrypy.tree.mount(webService, '/', conf)
     cherrypy.engine.start()
-    while True:
-        try:
-            
-            time.sleep(10)
+    flag = True
+    
+    try:
+        while flag:
+            time.sleep(5)
 
-        except KeyboardInterrupt:
-            print("Keyboard interrupt detected. Shutting down...")
-            # Terminate the webservice    
-            adaptor.stop_mqtt()  
-            cherrypy.engine.block()
-            
-        finally:
-            # Terminate the webservice 
-            adaptor.stop_mqtt()   
-            cherrypy.engine.block()
+    except KeyboardInterrupt:
+        print("Keyboard interrupt detected. Shutting down...")
+        # Terminate the webservice    
+        flag = False
+        
+    finally:
+        # Terminate the webservice 
+        adaptor.stop_mqtt()   
+        cherrypy.engine.block()

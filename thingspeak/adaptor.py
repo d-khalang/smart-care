@@ -372,6 +372,7 @@ class Adaptor():
         except requests.RequestException as e:
             self.logger.error(f"Failed to fetch plants information: {e}")
 
+    
 
     def get_topic_template(self):
         endpoint = self._discover_service("general", 'GET')

@@ -1,5 +1,6 @@
 {
     "name": "thingspeak_adaptor",
+    "description": "The adaptor to interact with thingspeak",
     "endpoints": [
       {
         "path": "/channel_detail",
