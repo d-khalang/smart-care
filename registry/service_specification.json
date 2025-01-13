@@ -1,5 +1,6 @@
 {
   "name": "service_registry",
+  "description": "service and resource registry system",
   "endpoints": [
     {
       "path": "/general",
