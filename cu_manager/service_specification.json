@@ -1,0 +1,164 @@
+{
+    "name": "controller_",
+    "description": "Control unit responsible for controlling data and sending commands",
+    "endpoints": [
+      {
+        "path": "/rooms",
+        "method": "GET",
+        "description": "Retrieve the list of room IDs managed by the controller",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved the list of room IDs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "content": {
+                      "type": "array",
+                      "items": { "type": "integer", "example": 101 }
+                    },
+                    "status": { "type": "integer", "example": 200 }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No rooms found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/definitions/error"
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "path": "/rooms",
+        "method": "POST",
+        "description": "Add new room IDs to the controller",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "rooms": {
+                    "type": "array",
+                    "items": { "type": "integer", "example": 101 }
+                  }
+                },
+                "required": ["rooms"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully added the rooms",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Added rooms: [101, 102]." },
+                    "status": { "type": "integer", "example": 200 }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Rooms not present in the body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/definitions/error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Invalid room IDs provided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/definitions/error"
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "path": "/rooms/{room_ids}",
+        "method": "DELETE",
+        "description": "Remove specific room IDs from the controller",
+        "parameters": [
+          {
+            "name": "room_ids",
+            "in": "path",
+            "required": true,
+            "description": "Comma-separated list of room IDs to remove",
+            "schema": { "type": "string", "example": "101,102" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully removed the rooms",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Eliminated rooms: [101, 102]." },
+                    "status": { "type": "integer", "example": 200 }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unrecognizable room IDs provided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/definitions/error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Invalid room IDs provided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/definitions/error"
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "definitions": {
+      "error": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": false },
+          "message": { "type": "string", "example": "Error message" },
+          "status": { "type": "integer", "example": 400 }
+        }
+      }
+    },
+    "host": ""
+  }
+  
