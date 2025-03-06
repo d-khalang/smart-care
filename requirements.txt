@@ -1,0 +1,11 @@
+CherryPy==18.8.0
+docker_py==1.10.6
+Flask==2.2.5
+huggingface_hub==0.26.2
+paho_mqtt==1.6.1
+pydantic==2.10.4
+pymongo==4.6.2
+python-dotenv==1.0.1
+reportlab==4.2.5
+Requests==2.32.3
+telepot==12.7

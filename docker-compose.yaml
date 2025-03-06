@@ -1,0 +1,140 @@
+services:
+  registry:
+    build: ./registry
+    ports:
+      - 8080:8080
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      - MONGO_URL=mongodb://mongo:27017 # Override for Docker
+    env_file:
+      - ./registry/.env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 1m
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - smart_care_network
+
+
+  mongo:
+    image: mongo:7.0
+    ports:
+      - 27017:27017
+    volumes:
+      - C:/Users/Noor/dataPlanting:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.runCommand({ ping: 1 })"]
+      interval: 1m
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    networks:
+      - smart_care_network
+
+
+  device_connector:
+    build: ./device_connector
+    depends_on:
+      registry:
+        condition: service_healthy
+    environment:
+      - CATALOG_URL=http://registry:8080 # Override for Docker
+    env_file:
+      - ./device_connector/.env
+    networks:
+      - smart_care_network
+
+
+  cu_manager:
+    build: ./cu_manager
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./cu_manager/controller_manager_state.json:/app/controller_manager_state.json
+    depends_on:
+      registry:
+        condition: service_healthy
+      device_connector:
+        condition: service_started
+    env_file:
+      - ./cu_manager/.env
+    environment:
+      - CATALOG_URL=http://registry:8080 # Docker-specific override
+    networks:
+      - smart_care_network
+
+
+  thingspeak:
+    build: ./thingspeak
+    ports:
+      - 7081:7081 
+    env_file:
+      - ./thingspeak/.env
+    environment:
+      - CATALOG_URL=http://registry:8080 # Docker-specific override
+    networks:
+      - smart_care_network
+    depends_on:
+      registry:
+        condition: service_healthy
+
+
+  reporter:
+    build: ./reporter
+    ports:
+      - 7082:7082
+    env_file:
+      - ./reporter/.env
+    environment:
+      - CATALOG_URL=http://registry:8080 # Docker-specific override
+    networks:
+      - smart_care_network
+    depends_on:
+      registry:
+        condition: service_healthy
+      thingspeak:
+        condition: service_started
+
+
+  interface:
+    build: ./interface
+    ports:
+      - 5000:5000
+    env_file:
+      - ./interface/.env
+    environment:
+      - CATALOG_URL=http://registry:8080 # Docker-specific override
+    networks:
+      - smart_care_network
+    depends_on:
+      registry:
+        condition: service_healthy
+      thingspeak:
+        condition: service_started
+      reporter:
+        condition: service_started
+
+
+  telegram_bot:
+    build: ./telegram_bot
+    env_file:
+      - ./telegram_bot/.env
+    environment:
+      - CATALOG_URL=http://registry:8080 # Docker-specific override
+    networks:
+      - smart_care_network
+    depends_on:
+      registry:
+        condition: service_healthy
+      thingspeak:
+        condition: service_started
+      reporter:
+        condition: service_started
+
+networks:
+  smart_care_network:
+    name: smart_care_network
+    external: true
