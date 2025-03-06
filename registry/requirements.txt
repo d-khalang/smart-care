@@ -1,0 +1,4 @@
+CherryPy==18.8.0
+pydantic==2.10.4
+pymongo==4.6.2
+python-dotenv==1.0.1

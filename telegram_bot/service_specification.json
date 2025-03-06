@@ -1,0 +1,6 @@
+{
+    "name": "telegram_bot",
+    "endpoints": [],
+    "description": "telegram bot back bone that interact with user and show the data of plants and their report",
+    "host": ""
+  }

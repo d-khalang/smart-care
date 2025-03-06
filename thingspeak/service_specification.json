@@ -1,0 +1,203 @@
+{
+    "name": "thingspeak_adaptor",
+    "description": "The adaptor to interact with thingspeak",
+    "endpoints": [
+      {
+        "path": "/channel_detail",
+        "method": "GET",
+        "description": "Retrieve thingspeak channels information (e.g., broker, template)",
+        "parameters": [
+          {
+            "name": "channel_id",
+            "in": "path",
+            "required": false,
+            "description": "Specific room/channel id to retrieve",
+            "schema": {
+              "type": "string",
+              "example": "1"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "content": {
+                      "type": "object",
+                      "schema": {
+                        "$ref": "#/definitions/channel_detail"
+                      }
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 200
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "content",
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid subpath",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/definitions/error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/definitions/error"
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "path": "/sensing_data",
+        "method": "GET",
+        "description": "Retrieve measurement data",
+        "parameters": [
+          {
+            "name": "channel_id",
+            "in": "path",
+            "required": true,
+            "description": "Specific channel/room ID to retrieve",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "results",
+            "in": "query",
+            "required": false,
+            "description": "Number of measurements to retrieve",
+            "schema": {
+              "type": "integer",
+              "default": 4
+            }
+          },
+          {
+            "name": "plant_id",
+            "in": "query",
+            "required": false,
+            "description": "A specific plant ID to retrieve",
+            "schema": {
+              "type": "integer",
+              "example": 101
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "content": {
+                      "type": "object",
+                      "schema": {
+                        "$ref": "#/definitions/sensing_data"
+                      }
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 200
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "content",
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid channel ID or query parameter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/definitions/error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "channel not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/definitions/error"
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "definitions": {
+      "channel_detail": {
+        "type": "object",
+        "properties": {
+          "channel_id": {
+            "type": "string",
+            "example": "1"
+          },
+          "details": {
+            "type": "string",
+            "example": "Channel details here"
+          }
+        }
+      },
+      "sensing_data": {
+        "type": "object",
+        "properties": {
+          "measurement": {
+            "type": "string",
+            "example": "Temperature"
+          },
+          "value": {
+            "type": "number",
+            "example": 23.5
+          }
+        }
+      },
+      "error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "Error message here"
+          }
+        }
+      }
+    },
+    "host": "http://thingspeak:7081"
+  }

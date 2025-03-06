@@ -1,0 +1,117 @@
+{
+  "name": "reporter",
+  "endpoints": [
+    {
+      "path": "/report",
+      "method": "GET",
+      "description": "Generates and retrieves a PDF report for a specific plant.",
+      "parameters": [
+        {
+          "name": "plant_id",
+          "in": "path",
+          "required": true,
+          "description": "The unique identifier for the plant.",
+          "schema": {
+            "type": "string",
+            "example": "12345"
+          }
+        },
+        {
+          "name": "room_id",
+          "in": "query",
+          "required": false,
+          "description": "The room ID associated with the plant.",
+          "schema": {
+            "type": "string",
+            "example": "67890"
+          }
+        },
+        {
+          "name": "results",
+          "in": "query",
+          "required": false,
+          "description": "The number of results to include in the report.",
+          "schema": {
+            "type": "integer",
+            "example": 10
+          }
+        },
+        {
+          "name": "start_date",
+          "in": "query",
+          "required": false,
+          "description": "The start date for the report data (in YYYY-MM-DD format).",
+          "schema": {
+            "type": "string",
+            "example": "2024-01-01"
+          }
+        },
+        {
+          "name": "end_date",
+          "in": "query",
+          "required": false,
+          "description": "The end date for the report data (in YYYY-MM-DD format).",
+          "schema": {
+            "type": "string",
+            "example": "2024-12-31"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Successful response",
+          "content": {
+            "application/pdf": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/definitions/error"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Not found",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/definitions/error"
+              }
+            }
+          }
+        },
+        "500": {
+          "description": "Internal Server Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/definitions/error"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "error": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string",
+          "example": "Error message here"
+        }
+      }
+    }
+  },
+  "host": "http://reporter:7082"
+}

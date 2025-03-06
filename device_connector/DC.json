@@ -1,0 +1,313 @@
+{
+    "plants":[
+        {
+            "plantId": 101,
+            "roomId": 1,
+            "plantKind": "Lettuce",
+            "plantDate": "2024-07-28",
+            "deviceInventory": [],
+            "lastUpdated": "2024-03-14 12:41:45"
+        },
+        {
+            "plantId": 102,
+            "roomId": 1,
+            "plantKind": "Lettuce",
+            "plantDate": "2024-11-28",
+            "deviceInventory": [],
+            "lastUpdated": ""
+        }
+    ],
+    "devices":[
+        {
+            "deviceId": 10101,
+            "deviceType": "sensor", 
+            "deviceName": "phsen",
+            "deviceStatus": "ON",
+            "statusOptions": [
+                "DISABLE",
+                "ON"
+            ],
+            "deviceLocation": {
+                "plantId": 101,
+                "roomId": 1
+            },
+            "measureTypes": [
+                "PH"
+            ],
+            "availableServices": [
+                "MQTT"
+            ],
+            "servicesDetails": [
+                {
+                    "serviceType": "MQTT",
+                    "topic": [
+                        "SC4SS/sensor/1/101/PH"
+                    ]
+                }
+            ]
+        },
+        {
+            "deviceId": 10102,
+            "deviceType": "sensor", 
+            "deviceName": "lightsen",
+            "deviceStatus": "ON",
+            "statusOptions": [
+                "DISABLE",
+                "ON"
+            ],
+            "deviceLocation": {
+                "plantId": null,
+                "roomId": 1
+            },
+            "measureTypes": [
+                "light"
+            ],
+            "availableServices": [
+                "MQTT"
+            ],
+            "servicesDetails": [
+                {
+                    "serviceType": "MQTT",
+                    "topic": [
+                        "SC4SS/sensor/1/000/light"
+                    ]
+                }
+            ]
+        },
+        {
+            "deviceId": 10103,
+            "deviceType": "sensor", 
+            "deviceName": "soilMoisturesen",
+            "deviceStatus": "ON",
+            "statusOptions": [
+                "DISABLE",
+                "ON"
+            ],
+            "deviceLocation": {
+                "plantId": 101,
+                "roomId": 1
+            },
+            "measureTypes": [
+                "soil_moisture"
+            ],
+            "availableServices": [
+                "MQTT"
+            ],
+            "servicesDetails": [
+                {
+                    "serviceType": "MQTT",
+                    "topic": [
+                        "SC4SS/sensor/1/101/soil_moisture"
+                    ]
+                }
+            ]
+        },
+        {
+            "deviceId": 10009,
+            "deviceType": "sensor", 
+            "deviceName": "tempsen",
+            "deviceStatus": "ON",
+            "statusOptions": [
+                "DISABLE",
+                "ON"
+            ],
+            "deviceLocation": {
+                "plantId": null,
+                "roomId": 1
+            },
+            "measureTypes": [
+                "temperature"
+            ],
+            "availableServices": [
+                "MQTT"
+            ],
+            "servicesDetails": [
+                {
+                    "serviceType": "MQTT",
+                    "topic": [
+                        "SC4SS/sensor/1/000/temperature"
+                    ]
+                }
+            ]
+        },
+        {
+            "deviceId": 10011,
+            "deviceType": "actuator", 
+            "deviceName": "heater_switch",
+            "deviceStatus": "OFF",
+            "statusOptions": [
+                "DISABLE",
+                "ON",
+                "OFF"
+            ],
+            "deviceLocation": {
+                "plantId": null,
+                "roomId": 1
+            },
+            "measureTypes": [
+                "temperature"
+            ],
+            "availableServices": [
+                "MQTT"
+            ],
+            "servicesDetails": [
+                {
+                    "serviceType": "MQTT",
+                    "topic": [
+                        "SC4SS/actuator/1/000/heater_switch"
+                    ]
+                }
+            ]
+        },
+        {
+            "deviceId": 10012,
+            "deviceType": "actuator", 
+            "deviceName": "fan_switch",
+            "deviceStatus": "OFF",
+            "statusOptions": [
+                "DISABLE",
+                "ON",
+                "OFF"
+            ],
+            "deviceLocation": {
+                "plantId": null,
+                "roomId": 1
+            },
+            "measureTypes": [
+                "temperature"
+            ],
+            "availableServices": [
+                "MQTT"
+            ],
+            "servicesDetails": [
+                {
+                    "serviceType": "MQTT",
+                    "topic": [
+                        "SC4SS/actuator/1/000/fan_switch"
+                    ]
+                }
+            ]
+        },
+        {
+            "deviceId": 10013,
+            "deviceType": "actuator", 
+            "deviceName": "window_switch",
+            "deviceStatus": "OFF",
+            "statusOptions": [
+                "DISABLE",
+                "ON",
+                "OFF"
+            ],
+            "deviceLocation": {
+                "plantId": null,
+                "roomId": 1
+            },
+            "measureTypes": [
+                "temperature"
+            ],
+            "availableServices": [
+                "MQTT"
+            ],
+            "servicesDetails": [
+                {
+                    "serviceType": "MQTT",
+                    "topic": [
+                        "SC4SS/actuator/1/000/window_switch"
+                    ]
+                }
+            ]
+        },
+        {
+            "deviceId": 10114,
+            "deviceType": "actuator", 
+            "deviceName": "light_switch",
+            "deviceStatus": "OFF",
+            "statusOptions": [
+                "DISABLE",
+                "OFF",
+                "LOW",
+                "MID",
+                "HIGH"
+            ],
+            "deviceLocation": {
+                "plantId": null,
+                "roomId": 1
+            },
+            "measureTypes": [
+                "light"
+            ],
+            "availableServices": [
+                "MQTT"
+            ],
+            "servicesDetails": [
+                {
+                    "serviceType": "MQTT",
+                    "topic": [
+                        "SC4SS/actuator/1/101/light_switch"
+                    ]
+                }
+            ]
+        },
+        {
+            "deviceId": 10116,
+            "deviceType": "actuator", 
+            "deviceName": "irrigator",
+            "deviceStatus": "OFF",
+            "statusOptions": [
+                "DISABLE",
+                "OFF",
+                "pour_water"
+            ],
+            "deviceLocation": {
+                "plantId": 101,
+                "roomId": 1
+            },
+            "measureTypes": [
+                "soil_moisture"
+            ],
+            "availableServices": [
+                "MQTT"
+            ],
+            "servicesDetails": [
+                {
+                    "serviceType": "MQTT",
+                    "topic": [
+                        "SC4SS/actuator/1/101/irrigator"
+                    ]
+                }
+            ]
+        },
+        {
+            "deviceId": 10203,
+            "deviceType": "sensor", 
+            "deviceName": "soilMoisturesen",
+            "deviceStatus": "ON",
+            "statusOptions": [
+                "DISABLE",
+                "ON"
+            ],
+            "deviceLocation": {
+                "plantId": 102,
+                "roomId": 1
+            },
+            "measureTypes": [
+                "soil_moisture"
+            ],
+            "availableServices": [
+                "MQTT"
+            ],
+            "servicesDetails": [
+                {
+                    "serviceType": "MQTT",
+                    "topic": [
+                        "SC4SS/sensor/1/102/soil_moisture"
+                    ]
+                }
+            ]
+        }
+    ],
+    "location": {
+        "lat": "45.07049N",
+        "lon": "7.68682E"
+    }
+}

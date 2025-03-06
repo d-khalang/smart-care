@@ -1,0 +1,1678 @@
+{
+  "name": "service_registry",
+  "description": "service and resource registry system",
+  "endpoints": [
+    {
+      "path": "/general",
+      "method": "GET",
+      "description": "Retrieve general information (e.g., broker, template)",
+      "parameters": [
+        {
+          "name": "subpath",
+          "in": "path",
+          "required": true,
+          "description": "Specific general information to retrieve",
+          "schema": {
+            "type": "string",
+            "enum": [
+              "broker",
+              "template"
+            ]
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Successful response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "success": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "content": {
+                    "type": "object",
+                    "oneOf": [
+                      {
+                        "$ref": "#/definitions/broker"
+                      },
+                      {
+                        "$ref": "#/definitions/template"
+                      }
+                    ]
+                  },
+                  "status": {
+                    "type": "integer",
+                    "example": 200
+                  }
+                },
+                "required": [
+                  "success",
+                  "content",
+                  "status"
+                ]
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid subpath",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/definitions/error"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Not found",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/definitions/error"
+              }
+            }
+          }
+        },
+        "500": {
+          "description": "Server error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/definitions/error"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/plants",
+      "method": "GET",
+      "description": "Retrieve plant information",
+      "parameters": [
+        {
+          "name": "plant_id",
+          "in": "path",
+          "required": false,
+          "description": "Specific plant ID to retrieve",
+          "schema": {
+            "type": "integer"
+          }
+        },
+        {
+          "name": "no_detail",
+          "in": "query",
+          "required": false,
+          "description": "If true, returns only the IDs",
+          "schema": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Successful response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "success": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "content": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/definitions/plant"
+                    }
+                  },
+                  "status": {
+                    "type": "integer",
+                    "example": 200
+                  }
+                },
+                "required": [
+                  "success",
+                  "content",
+                  "status"
+                ]
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid plant ID or query parameter",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/definitions/error"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Plant not found",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/definitions/error"
+              }
+            }
+          }
+        },
+        "500": {
+          "description": "Server error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/definitions/error"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/devices",
+      "method": "GET",
+      "description": "Retrieve device information",
+      "parameters": [
+        {
+          "name": "device_id",
+          "in": "path",
+          "required": false,
+          "description": "Specific device ID to retrieve",
+          "schema": {
+            "type": "integer"
+          }
+        },
+        {
+          "name": "no_detail",
+          "in": "query",
+          "required": false,
+          "description": "If true, returns only the IDs",
+          "schema": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        {
+          "name": "room_id",
+          "in": "query",
+          "required": false,
+          "description": "Filter by room ID",
+          "schema": {
+            "type": "integer"
+          }
+        },
+        {
+          "name": "plant_id",
+          "in": "query",
+          "required": false,
+          "description": "Filter by plant ID",
+          "schema": {
+            "type": "integer"
+          }
+        },
+        {
+          "name": "measure_type",
+          "in": "query",
+          "required": false,
+          "description": "Filter by measure type",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "device_type",
+          "in": "query",
+          "required": false,
+          "description": "Filter by device type",
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Successful response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "success": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "content": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/definitions/device"
+                    }
+                  },
+                  "status": {
+                    "type": "integer",
+                    "example": 200
+                  }
+                },
+                "required": [
+                  "success",
+                  "content",
+                  "status"
+                ]
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid device ID or query parameter",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/definitions/error"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Device not found",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/definitions/error"
+              }
+            }
+          }
+        },
+        "500": {
+          "description": "Server error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/definitions/error"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/plant_kinds",
+      "method": "GET",
+      "description": "Retrieve plant kind information",
+      "parameters": [
+        {
+          "name": "kind_name",
+          "in": "path",
+          "required": false,
+          "description": "Specific plant kind name to retrieve",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "no_detail",
+          "in": "query",
+          "required": false,
+          "description": "If true, returns only the names",
+          "schema": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Successful response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "success": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "content": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/definitions/plant_kind"
+                    }
+                  },
+                  "status": {
+                    "type": "integer",
+                    "example": 200
+                  }
+                },
+                "required": [
+                  "success",
+                  "content",
+                  "status"
+                ]
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid plant kind name or query parameter",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/definitions/error"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Plant kind not found",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/definitions/error"
+              }
+            }
+          }
+        },
+        "500": {
+          "description": "Server error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/definitions/error"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/rooms",
+      "method": "GET",
+      "description": "Retrieve room information",
+      "parameters": [
+        {
+          "name": "room_id",
+          "in": "path",
+          "required": false,
+          "description": "Specific room ID to retrieve",
+          "schema": {
+            "type": "integer"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Successful response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "success": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "content": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/definitions/room"
+                    }
+                  },
+                  "status": {
+                    "type": "integer",
+                    "example": 200
+                  }
+                },
+                "required": [
+                  "success",
+                  "content",
+                  "status"
+                ]
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid room ID",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/definitions/error"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Room not found",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/definitions/error"
+              }
+            }
+          }
+        },
+        "500": {
+          "description": "Server error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/definitions/error"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/users",
+      "method": "GET",
+      "description": "Retrieve user information based on provided parameters.",
+      "parameters": [
+        {
+          "name": "user_name",
+          "in": "query",
+          "required": false,
+          "description": "The username of the user.",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "telegram_id",
+          "in": "query",
+          "required": false,
+          "description": "The Telegram ID of the user.",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "plant_id",
+          "in": "query",
+          "required": false,
+          "description": "The plant ID associated with the user.",
+          "schema": {
+            "type": "integer"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Successful response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "success": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "data": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "userName": {
+                          "type": "string"
+                        },
+                        "password": {
+                          "type": "string"
+                        },
+                        "plantInventory": {
+                          "type": "array",
+                          "items": {
+                            "type": "integer"
+                          }
+                        },
+                        "telegramId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "status": {
+                    "type": "integer",
+                    "example": 200
+                  }
+                },
+                "required": [
+                  "success",
+                  "data",
+                  "status"
+                ]
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid parameters",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/definitions/error"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/devices",
+      "method": "POST",
+      "description": "Create a new device",
+      "requestBody": {
+        "type": "object",
+        "properties": {
+          "device_id": {
+            "type": "integer",
+            "example": 10009
+          },
+          "device_name": {
+            "type": "string",
+            "example": "tempsen"
+          },
+          "device_type": {
+            "type": "string",
+            "example": "sensor"
+          },
+          "device_location": {
+            "type": "object",
+            "properties": {
+              "plant_id": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "example": null
+              },
+              "room_id": {
+                "type": "integer",
+                "example": 1
+              }
+            },
+            "required": [
+              "plant_id",
+              "room_id"
+            ]
+          },
+          "device_status": {
+            "type": "string",
+            "example": "ON"
+          },
+          "measure_types": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "example": "temperature"
+            }
+          },
+          "status_options": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "example": "DISABLE"
+            }
+          },
+          "available_services": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "example": "MQTT"
+            }
+          },
+          "services_details": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "service_type": {
+                  "type": "string",
+                  "example": "MQTT"
+                },
+                "topic": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "example": "SC4SS/sensor/1/000/temperature"
+                  }
+                }
+              },
+              "required": [
+                "service_type",
+                "topic"
+              ]
+            }
+          }
+        },
+        "required": [
+          "device_id",
+          "device_name",
+          "device_type",
+          "device_location",
+          "device_status",
+          "measure_types",
+          "status_options",
+          "available_services",
+          "services_details"
+        ]
+      },
+      "responses": {
+        "201": {
+          "description": "Device created successfully",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "success": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "message": {
+                    "type": "string",
+                    "example": "Device registered successfully"
+                  },
+                  "status": {
+                    "type": "integer",
+                    "example": 201
+                  }
+                },
+                "required": [
+                  "success",
+                  "message",
+                  "status"
+                ]
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid input data",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/definitions/error"
+              }
+            }
+          }
+        },
+        "500": {
+          "description": "Server error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/definitions/error"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/plants",
+      "method": "POST",
+      "description": "Create a new plant",
+      "requestBody": {
+        "type": "object",
+        "properties": {
+          "plant_id": {
+            "type": "integer",
+            "example": 101
+          },
+          "plant_name": {
+            "type": "string",
+            "example": "Greenhouse A"
+          },
+          "plant_location": {
+            "type": "string",
+            "example": "Florence, Italy"
+          },
+          "plant_status": {
+            "type": "string",
+            "example": "Active"
+          },
+          "plant_type": {
+            "type": "string",
+            "example": "Agriculture"
+          },
+          "plant_size": {
+            "type": "integer",
+            "example": 1500
+          },
+          "associated_devices": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "example": 10009
+            }
+          }
+        },
+        "required": [
+          "plant_id",
+          "plant_name",
+          "plant_location",
+          "plant_status",
+          "plant_type",
+          "plant_size"
+        ]
+      },
+      "responses": {
+        "201": {
+          "description": "Plant created successfully",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "success": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "message": {
+                    "type": "string",
+                    "example": "Plant registered successfully"
+                  },
+                  "status": {
+                    "type": "integer",
+                    "example": 201
+                  }
+                },
+                "required": [
+                  "success",
+                  "message",
+                  "status"
+                ]
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid input data",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/definitions/error"
+              }
+            }
+          }
+        },
+        "500": {
+          "description": "Server error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/definitions/error"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/plants/{plant_id}",
+      "method": "PUT",
+      "description": "Update the details of an existing plant",
+      "requestBody": {
+        "type": "object",
+        "properties": {
+          "plant_id": {
+            "type": "integer",
+            "example": 101
+          },
+          "plant_name": {
+            "type": "string",
+            "example": "Greenhouse A"
+          },
+          "plant_location": {
+            "type": "string",
+            "example": "Florence, Italy"
+          },
+          "plant_status": {
+            "type": "string",
+            "example": "Active"
+          },
+          "plant_type": {
+            "type": "string",
+            "example": "Agriculture"
+          },
+          "plant_size": {
+            "type": "integer",
+            "example": 1500
+          },
+          "associated_devices": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "example": 10009
+            }
+          }
+        },
+        "required": [
+          "plant_id",
+          "plant_name",
+          "plant_location",
+          "plant_status",
+          "plant_type",
+          "plant_size"
+        ]
+      },
+      "responses": {
+        "200": {
+          "description": "Plant updated successfully",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "success": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "message": {
+                    "type": "string",
+                    "example": "Plant updated successfully"
+                  },
+                  "status": {
+                    "type": "integer",
+                    "example": 200
+                  }
+                },
+                "required": [
+                  "success",
+                  "message",
+                  "status"
+                ]
+              }
+            }
+          }
+        },
+        "201": {
+          "description": "Plant created successfully (if it didn't exist)",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "success": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "message": {
+                    "type": "string",
+                    "example": "Plant created successfully"
+                  },
+                  "status": {
+                    "type": "integer",
+                    "example": 201
+                  }
+                },
+                "required": [
+                  "success",
+                  "message",
+                  "status"
+                ]
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid input data",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/definitions/error"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Plant not found (if updating an existing plant)",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/definitions/error"
+              }
+            }
+          }
+        },
+        "500": {
+          "description": "Server error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/definitions/error"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/devices/{device_id}",
+      "method": "PUT",
+      "description": "Update the details of an existing device",
+      "requestBody": {
+        "type": "object",
+        "properties": {
+          "device_id": {
+            "type": "integer",
+            "example": 1001
+          },
+          "device_name": {
+            "type": "string",
+            "example": "Temperature Sensor"
+          },
+          "device_type": {
+            "type": "string",
+            "example": "Sensor"
+          },
+          "device_status": {
+            "type": "string",
+            "example": "Active"
+          },
+          "status_options": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "example": "Active"
+            }
+          }
+        },
+        "required": [
+          "device_id",
+          "device_name",
+          "device_type",
+          "device_status",
+          "status_options"
+        ]
+      },
+      "responses": {
+        "200": {
+          "description": "Device updated successfully",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "success": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "message": {
+                    "type": "string",
+                    "example": "Device updated successfully"
+                  },
+                  "status": {
+                    "type": "integer",
+                    "example": 200
+                  }
+                },
+                "required": [
+                  "success",
+                  "message",
+                  "status"
+                ]
+              }
+            }
+          }
+        },
+        "201": {
+          "description": "Device created successfully (if it didn't exist)",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "success": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "message": {
+                    "type": "string",
+                    "example": "Device created successfully"
+                  },
+                  "status": {
+                    "type": "integer",
+                    "example": 201
+                  }
+                },
+                "required": [
+                  "success",
+                  "message",
+                  "status"
+                ]
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid input data",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/definitions/error"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Device not found (if updating an existing device)",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/definitions/error"
+              }
+            }
+          }
+        },
+        "500": {
+          "description": "Server error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/definitions/error"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/users",
+      "method": "POST",
+      "description": "Create a new user with the specified details.",
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "user_name": {
+                  "type": "string"
+                },
+                "password": {
+                  "type": "string"
+                },
+                "plant_id": {
+                  "type": "integer"
+                },
+                "telegram_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "user_name",
+                "password",
+                "plant_id"
+              ]
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "User created successfully",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "success": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "message": {
+                    "type": "string",
+                    "example": "User {user_name} registered."
+                  },
+                  "status": {
+                    "type": "integer",
+                    "example": 200
+                  }
+                },
+                "required": [
+                  "success",
+                  "message",
+                  "status"
+                ]
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid input",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/definitions/error"
+              }
+            }
+          }
+        },
+        "500": {
+          "description": "Internal server error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/definitions/error"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/users",
+      "method": "PUT",
+      "description": "Update an existing user with the specified details.",
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "user_name": {
+                  "type": "string"
+                },
+                "password": {
+                  "type": "string"
+                },
+                "plant_id": {
+                  "type": "integer"
+                },
+                "telegram_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "user_name",
+                "password",
+                "plant_id"
+              ]
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "User updated successfully",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "success": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "message": {
+                    "type": "string",
+                    "example": "User {user_name} updated."
+                  },
+                  "status": {
+                    "type": "integer",
+                    "example": 200
+                  }
+                },
+                "required": [
+                  "success",
+                  "message",
+                  "status"
+                ]
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid input",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/definitions/error"
+              }
+            }
+          }
+        },
+        "500": {
+          "description": "Internal server error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/definitions/error"
+              }
+            }
+          }
+        }
+      }
+    },    
+    {
+      "path": "/devices/{device_id}/status",
+      "method": "PUT",
+      "description": "Update the status of an existing device",
+      "requestBody": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "Inactive"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "responses": {
+        "200": {
+          "description": "Device status updated successfully",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "success": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "message": {
+                    "type": "string",
+                    "example": "Device status updated to Inactive"
+                  },
+                  "status": {
+                    "type": "integer",
+                    "example": 200
+                  }
+                },
+                "required": [
+                  "success",
+                  "message",
+                  "status"
+                ]
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid status or missing data",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/definitions/error"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Device not found",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/definitions/error"
+              }
+            }
+          }
+        },
+        "500": {
+          "description": "Server error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/definitions/error"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "broker": {
+      "type": "object",
+      "properties": {
+        "broker": {
+          "type": "object",
+          "properties": {
+            "IP": {
+              "type": "string",
+              "example": "mqtt.eclipseprojects.io"
+            },
+            "port": {
+              "type": "integer",
+              "example": 1883
+            }
+          },
+          "required": [
+            "IP",
+            "port"
+          ]
+        }
+      },
+      "required": [
+        "broker"
+      ]
+    },
+    "template": {
+      "type": "object",
+      "properties": {
+        "template": {
+          "type": "object",
+          "properties": {
+            "project_name": {
+              "type": "integer",
+              "example": 0
+            },
+            "device_type": {
+              "type": "integer",
+              "example": 1
+            },
+            "room_id": {
+              "type": "integer",
+              "example": 2
+            },
+            "plant_id": {
+              "type": "integer",
+              "example": 3
+            },
+            "measure_type": {
+              "type": "integer",
+              "example": 4
+            }
+          },
+          "required": [
+            "project_name",
+            "device_type",
+            "room_id",
+            "plant_id",
+            "measure_type"
+          ]
+        },
+        "description": {
+          "type": "object",
+          "properties": {
+            "project_name": {
+              "type": "string",
+              "example": "The name of the project (e.g., SC4SS)"
+            },
+            "device_type": {
+              "type": "string",
+              "example": "The type of the device (e.g., sensor, actuator)"
+            },
+            "room_id": {
+              "type": "string",
+              "example": "The ID of the room where the device is located"
+            },
+            "plant_id": {
+              "type": "string",
+              "example": "The ID of the plant or specific unit the device is monitoring, could be 000 when device is a room device"
+            },
+            "measurement": {
+              "type": "string",
+              "example": "The type of measurement or data the device is providing (e.g., temperature, humidity, PH)"
+            }
+          },
+          "required": [
+            "project_name",
+            "device_type",
+            "room_id",
+            "plant_id",
+            "measurement"
+          ]
+        },
+        "example": {
+          "type": "string",
+          "example": "SC4SS/sensor/1/101/PH"
+        },
+        "usage": {
+          "type": "string",
+          "example": "This template is used to construct and validate MQTT topics. Each key corresponds to a segment of the topic, and the value indicates the position of that segment in the topic string. The control unit microservice retrieves this template from the database to ensure a unified format for topic creation and checking."
+        }
+      },
+      "required": [
+        "template",
+        "description",
+        "example",
+        "usage"
+      ]
+    },
+    "error": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "example": false
+        },
+        "message": {
+          "type": "string",
+          "example": "Error message"
+        },
+        "status": {
+          "type": "integer",
+          "example": 400
+        }
+      },
+      "required": [
+        "success",
+        "message",
+        "status"
+      ]
+    },
+    "plant": {
+      "type": "object",
+      "properties": {
+        "plantId": {
+          "type": "integer",
+          "example": 101
+        },
+        "deviceInventory": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "example": 10101
+          }
+        },
+        "lastUpdated": {
+          "type": "string",
+          "format": "date-time",
+          "example": "2024-12-04 11:05:02"
+        },
+        "plantDate": {
+          "type": "string",
+          "format": "date",
+          "example": "2024-07-28"
+        },
+        "plantKind": {
+          "type": "string",
+          "example": "Lettuce"
+        },
+        "roomId": {
+          "type": "integer",
+          "example": 1
+        }
+      },
+      "required": [
+        "plantId",
+        "deviceInventory",
+        "lastUpdated",
+        "plantDate",
+        "plantKind",
+        "roomId"
+      ]
+    },
+    "device": {
+      "type": "object",
+      "properties": {
+        "deviceId": {
+          "type": "integer",
+          "example": 10009
+        },
+        "availableServices": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "example": "MQTT"
+          }
+        },
+        "deviceLocation": {
+          "type": "object",
+          "properties": {
+            "plantId": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "example": null
+            },
+            "roomId": {
+              "type": "integer",
+              "example": 1
+            }
+          },
+          "required": [
+            "plantId",
+            "roomId"
+          ]
+        },
+        "deviceName": {
+          "type": "string",
+          "example": "tempsen"
+        },
+        "deviceStatus": {
+          "type": "string",
+          "example": "ON"
+        },
+        "deviceType": {
+          "type": "string",
+          "example": "sensor"
+        },
+        "lastUpdated": {
+          "type": "string",
+          "format": "date-time",
+          "example": "2024-12-04 11:05:02"
+        },
+        "measureTypes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "example": "temperature"
+          }
+        },
+        "servicesDetails": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "serviceType": {
+                "type": "string",
+                "example": "MQTT"
+              },
+              "topic": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "example": "SC4SS/sensor/1/000/temperature"
+                }
+              }
+            },
+            "required": [
+              "serviceType",
+              "topic"
+            ]
+          }
+        },
+        "statusOptions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "example": "DISABLE"
+          }
+        }
+      },
+      "required": [
+        "deviceId",
+        "availableServices",
+        "deviceLocation",
+        "deviceName",
+        "deviceStatus",
+        "deviceType",
+        "lastUpdated",
+        "measureTypes",
+        "servicesDetails",
+        "statusOptions"
+      ]
+    },
+    "plant_kind": {
+      "type": "object",
+      "properties": {
+        "plantKind": {
+          "type": "string",
+          "example": "Lettuce"
+        },
+        "coldestTemperature": {
+          "type": "number",
+          "example": 20
+        },
+        "hottestTemperature": {
+          "type": "number",
+          "example": 35
+        },
+        "bestTemperatureRange": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "example": 25
+          }
+        },
+        "PHRange": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "example": 5.4
+          }
+        },
+        "vegetativeLightRange": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "example": 200
+          }
+        },
+        "floweringLightRange": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "example": 400
+          }
+        },
+        "volumetricWaterContent": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "example": 20
+          }
+        }
+      },
+      "required": [
+        "plantKind",
+        "coldestTemperature",
+        "hottestTemperature",
+        "bestTemperatureRange",
+        "PHRange",
+        "vegetativeLightRange",
+        "floweringLightRange",
+        "volumetricWaterContent"
+      ]
+    }
+  },
+  "host": "http://127.0.0.1:8080"
+}
